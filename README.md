@@ -1,2 +1,8 @@
 # Steam-Recommender-Project
-Group Project for CSC111
+A group project for CSC111 intended to create a program that provides game recommendations to a user based on their preferences.
+
+Team Members
+Mikhael Orteza
+Cheng Peng
+Muaj Ahmed
+Ari Casa Nassar
