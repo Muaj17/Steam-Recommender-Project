@@ -195,3 +195,15 @@ def sort_games(games: list[Game]) -> list[Game]:
 
 def runner(csv_file: str) -> dict[str, float]:
     """Run a simulation based on the data from the given csv file."""
+
+    # part 1 read csv twice
+    games = read_data_csv(game_file)
+    ganes_tags = read_metadata_csv(game_metadata_file)
+    for game in games:
+        for game_tag in ganes_tags:
+            if game.game_id == game_tag[0]:
+                game.genres = game_tag[1]
+    # part 2 tkinter interface
+    # part 3 calculate meta score
+
+    # part 4 give recommendations
