@@ -8,6 +8,8 @@ class Game:
     Instance Attributes:
     - name:
         The name of the game.
+    - game_id:
+        The id of the game.
     - date_release:
         The date for when the game was released.
     - operating_systems:
@@ -15,6 +17,8 @@ class Game:
         compatibility with them.(str : bool)
     - price:
         the price of the game.
+    - positive_ratio:
+        An official ratio for the game. It is used in part of our metascore calculation.
     - rating:
         The metascore of the game, which is dependent on the relationship between the game's attributes and the
         user's preferences.
@@ -25,10 +29,11 @@ class Game:
     date_release: str   # swap it to str, make it easier to load
     operating_systems: dict
     price: float
-    rating: int # swap it to int, the original csv contains integer from 0 to 100, can change back if you want
+    positive_ratio: int
+    rating: float # meta-score
 
     def __init__(self, name: str, game_id: int, genres: set, date: str, operating_system: dict,
-                 price: float, rating: int) -> None:
+                 price: float, positive_ratio: int, rating: int) -> None:
         """Initializes the game instance"""
         self.name = name
         self.game_id = game_id
@@ -36,6 +41,7 @@ class Game:
         self.date_release = date
         self.operating_systems = operating_system
         self.price = price
+        self.positive_ratio = positive_ratio
         self.rating = rating
 
     def genre_count(self, user_genres: set) -> int:
@@ -193,7 +199,7 @@ def sort_games(games: list[Game]) -> list[Game]:
     """Creates a sorted list of the games in the given list in descending order of their rating"""
 
 
-def runner(csv_file: str) -> dict[str, float]:
+def runner(game_file: str, game_metadata_file: str) -> None:
     """Run a simulation based on the data from the given csv file."""
 
     # part 1 read csv twice
