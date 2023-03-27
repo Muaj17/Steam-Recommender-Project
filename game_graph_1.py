@@ -5,7 +5,6 @@ import json
 
 class Game:
     """A steam game and its various attributes
-
     Instance Attributes:
     - name:
         The name of the game.
@@ -66,20 +65,39 @@ class GameNode:
         self.game = game
         self.neighbours = []
 
+    def top_similar_games(self, total: int, visited_so_far: set[Game]) -> list[Game]:
+        """Returns a list of the most similar games of genre to self.game"""
+        if total > len(self.neighbours):
+            total = len(self.neighbours)
+        if total == 0:
+            return []
+        else:
+            list_so_far = []
+            max_genres_so_far = 0
+            most_similar_game = None
+            for neighbour in self.neighbours:
+                total_genres = self.game.genre_count(neighbour.game.genres)
+                if neighbour.game not in visited_so_far and total_genres > max_genres_so_far:
+                    most_similar_game = neighbour.game
+            list_so_far.append(most_similar_game)
+            visited_so_far.add(most_similar_game)
+            return list_so_far + self.top_similar_games(total - 1, visited_so_far)
+                    
 
 class GameGraph:
     """A graph containing nodes that represent a game. Nodes are connected depending on the number of genres that they
-    have in common with another game.
-
+    have in common with another game and the user's preferred genres.
     Instance Attributes:
     - game_total:
-        The minimum number of genres that two connected nodes have in common.
-
+        The minimum number of genres that a game in the graph must have in common with the user's preferred genres.
+    - edge_total:
+        The minimum number of genres that two nodes must have in order for an edge to be formed between them.
     Representation Invariants:
     - all(self._nodes[name].name = name for name in self_nodes)
     - self_total >= 0
     """
     game_total: int
+    edge_total: int
     user_genres: set
     _nodes: dict[str, GameNode]
 
@@ -97,23 +115,41 @@ class GameGraph:
 
     def add_edge(self, game1: str, game2: str) -> None:
         """Creates an edge between two games
-
         Preconditions:
         - game1 in self._nodes and game2 in self._nodes
         """
         node1, node2 = self._nodes[game1], self._nodes[game2]
         similar_games = node1.game.genre_count(node2.game.genres)
-        if similar_games != 0:
+        if similar_games >= self.edge_total:
             node1.neighbours.append(node2)
             node2.neighbours.append(node1)
+
+    def top_games(self, total: int, recorded_games: set[Game]) -> list[Game]:
+        """Returns a list of the top recommended games depending on the inputted parameter
+        Preconditions:
+        - total >= 0
+        """
+        if total == 0:
+            return []
+        else:
+            list_so_far = []
+            max_game = None
+            max_score_so_far = 0
+            for game in self._nodes:
+                node = self._nodes[game]
+                if node.game not in recorded_games and node.game.rating > max_score_so_far:
+                    max_game = node.game
+                    max_score_so_far = node.game.rating
+            recorded_games.add(max_game)
+            list_so_far.append(max_game)
+            rec_result = self.top_games(total - 1, recorded_games)
+            return list_so_far + rec_result
 
 
 def read_data_csv(csv_file: str) -> list[Game]:
     """Load data from a CSV file and output the data as a list of Games.
-
     Preconditions:
         - csv_file refers to a valid CSV file
-
     """
     with open(csv_file) as f:
         word_list = [str.strip(line.lower()) for line in f]
@@ -140,10 +176,8 @@ def read_data_csv(csv_file: str) -> list[Game]:
 def read_metadata_csv(csv_file: str) -> list[tuple]:
     """Load data from a CSV file and output the data as a list of tuples. The tuple contains the game_id(index 0, int)
     and the tags(index 1, list[str]).
-
     Preconditions:
         - csv_file refers to a valid CSV file
-
     """
     with open(csv_file) as f:
         word_list = [str.strip(line.lower()) for line in f]
@@ -155,35 +189,9 @@ def read_metadata_csv(csv_file: str) -> list[tuple]:
     return result
 
 
+def sort_games(games: list[Game]) -> list[Game]:
+    """Creates a sorted list of the games in the given list in descending order of their rating"""
+
+
 def runner(csv_file: str) -> dict[str, float]:
-    """Run a simulation based on the data from the given csv file.
-
-    Return a dictionary with two keys:
-        - 'average latency', whose associated value is the average packet latency
-        - 'average route length', whose associated value is the average route length
-
-    Preconditions:
-        - csv_file refers to a valid CSV file in the format described on the assignment handout
-        - plot_type in {None, 'latencies', 'route-lengths'}
-    """
-    network = read_packet_csv(csv_file)[0]
-    simulation = NetworkSimulation(network)
-    packets = read_packet_csv(csv_file)[1]
-    packet_stats = simulation.run_with_initial_packets(packets)
-    if plot_type == 'latencies':
-        plot_packet_latencies(packet_stats)
-    elif plot_type == 'route-lengths':
-        plot_route_lengths(packet_stats)
-    lengths = []
-    for packet in packet_stats:
-        length = len(packet.route)
-        lengths.append(length)
-    latencies = []
-    for packet in packet_stats:
-        latency = packet.arrived_at - packet.created_at
-        latencies.append(latency)
-
-    return {
-        'average latency': sum(latencies) / len(packets),
-        'average route length': sum(lengths) / len(packets)
-    }
+    """Run a simulation based on the data from the given csv file."""
