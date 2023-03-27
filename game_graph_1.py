@@ -209,7 +209,8 @@ def runner(game_file: str, game_metadata_file: str) -> None:
         for game_tag in ganes_tags:
             if game.game_id == game_tag[0]:
                 game.genres = game_tag[1]
-    # part 2 tkinter interface
+    # part 2 tkinter interface(ask for preferred genres)
+
     # part 3 calculate meta score
 
-    # part 4 give recommendations
+    # part 4 give recommendations(top 5 only)
