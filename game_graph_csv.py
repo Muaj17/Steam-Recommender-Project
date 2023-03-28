@@ -1,8 +1,11 @@
 """Code for the game graph"""
 from __future__ import annotations
+from dataclasses import dataclass
+from typing import Optional
 import json
 
 
+@dataclass
 class Game:
     """A steam game and its various attributes
     Instance Attributes:
@@ -16,7 +19,7 @@ class Game:
         A dictionary consisting of a mapping between various operating systems and the game's
         compatibility with them.(str : bool)
     - price:
-        the price of the game.
+        the price of the game, in US dollars.
     - positive_ratio:
         An official ratio for the game. It is used in part of our metascore calculation.
     - rating:
@@ -24,25 +27,13 @@ class Game:
         user's preferences.
     """
     name: str
-    game_id: int    # added
+    game_id: int  # added
     genres: set
-    date_release: str   # swap it to str, make it easier to load
-    operating_systems: dict
+    date_release: str  # swap it to str, make it easier to load
+    operating_systems: dict[str, bool]
     price: float
     positive_ratio: int
-    rating: float # meta-score
-
-    def __init__(self, name: str, game_id: int, genres: set, date: str, operating_system: dict,
-                 price: float, positive_ratio: int, rating: int) -> None:
-        """Initializes the game instance"""
-        self.name = name
-        self.game_id = game_id
-        self.genres = genres
-        self.date_release = date
-        self.operating_systems = operating_system
-        self.price = price
-        self.positive_ratio = positive_ratio
-        self.rating = rating
+    rating: Optional[float]  # meta-score
 
     def genre_count(self, user_genres: set) -> int:
         """Counts the number of user preferenced genres and the game genres that are similar"""
