@@ -174,19 +174,20 @@ def read_data_csv(csv_file: str) -> list[Game]:
     return result
 
 
-def read_metadata_csv(csv_file: str) -> list[tuple]:
-    """Load data from a CSV file and output the data as a list of tuples. The tuple contains the game_id(index 0, int)
+def read_metadata_json(json_file: str) -> list[tuple]:
+    """Load data from a JSON file and output the data as a list of tuples. The tuple contains the game_id(index 0, int)
     and the tags(index 1, list[str]).
     Preconditions:
-        - csv_file refers to a valid CSV file
+        - json_file refers to a valid JSON file
     """
-    with open(csv_file) as f:
-        word_list = [str.strip(line.lower()) for line in f]
     result = []
 
-    for i in range(0, len(word_list)):
-        temp_dict = json.loads(word_list[i])
-        result.append((int(temp_dict.get('app_id')), temp_dict.get('tags')))
+    with open(json_file) as f:
+        for line in [str.strip(line.lower()) for line in f]:
+            curr_full_metadata = json.loads(line)
+            relevant_metadata = (int(curr_full_metadata.get('app_id')), curr_full_metadata.get('tags'))
+            result.append(relevant_metadata)
+
     return result
 
 
@@ -199,7 +200,7 @@ def runner(game_file: str, game_metadata_file: str) -> None:
 
     # part 1 read csv twice
     games = read_data_csv(game_file)
-    ganes_tags = read_metadata_csv(game_metadata_file)
+    ganes_tags = read_metadata_json(game_metadata_file)
     for game in games:
         for game_tag in ganes_tags:
             if game.game_id == game_tag[0]:
