@@ -2,6 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
+import csv
 import json
 
 
@@ -79,7 +80,7 @@ class GameNode:
             list_so_far.append(most_similar_game)
             visited_so_far.add(most_similar_game)
             return list_so_far + self.top_similar_games(total - 1, visited_so_far)
-                    
+
 
 class GameGraph:
     """A graph containing nodes that represent a game. Nodes are connected depending on the number of genres that they
@@ -148,25 +149,28 @@ def read_data_csv(csv_file: str) -> list[Game]:
     Preconditions:
         - csv_file refers to a valid CSV file
     """
-    with open(csv_file) as f:
-        word_list = [str.strip(line.lower()) for line in f]
-
     result = []
-    for i in range(1, len(word_list)):
-        game_id = int(word_list[i].split(',')[0])
-        name = word_list[i].split(',')[1]
-        date_release = word_list[i].split(',')[2]
-        genres = set()
-        operating_systems = {'win' : bool(word_list[i].split(',')[3]),
-                             'mac' : bool(word_list[i].split(',')[4]),
-                             'linux' : bool(word_list[i].split(',')[5])}
-        # 6 is skipped for rating(all words)
-        positive_ratio = int(word_list[i].split(',')[7])
-        # 8 is skipped for user_reviews
-        price_final = float(word_list[i].split(',')[9])
-        # Last 3 are price_original,discount,steam_deck, they are skipped
-        temp_game = Game(name, game_id, genres, date_release, operating_systems, price_final, positive_ratio)
-        result.append(temp_game)
+
+    with open(csv_file) as f:
+        reader = csv.reader(f)
+
+        next(reader)  # skip headers
+
+        for row in reader:
+            game_id = int(row[0])
+            name = row[1]
+            date_release = row[2]
+            genres = set()
+            operating_systems = {'win': bool(row[3]),
+                                 'mac': bool(row[4]),
+                                 'linux': bool(row[5])}
+            # 6 is skipped for rating(all words)
+            positive_ratio = int(row[7])
+            # 8 is skipped for user_reviews
+            price_final = float(row[9])
+            # Last 3 are price_original,discount,steam_deck, they are skipped
+            curr_game = Game(name, game_id, genres, date_release, operating_systems, price_final, positive_ratio, None)
+            result.append(curr_game)
     return result
 
 
