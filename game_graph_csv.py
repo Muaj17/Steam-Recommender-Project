@@ -29,25 +29,28 @@ class Game:
     """
     name: str
     game_id: int  # added
-    genres: set
+    genres: set[str]
     date_release: str  # swap it to str, make it easier to load
     operating_systems: dict[str, bool]
     price: float
     positive_ratio: int
     rating: Optional[float]  # meta-score
 
-    def genre_count(self, user_genres: set) -> int:
+    def genre_count(self, user_genres: set[str]) -> int:
         """Counts the number of user preferenced genres and the game genres that are similar"""
         return len(self.genre_list(user_genres))
 
     def same_num_game(self, other_game: Game, total_needed: int) -> bool:
         """Compares self to another game and determines if they have a certain number of games, depending on what is
         inputted into the total_needed paramter
+
+        Preconditions:
+        - total_needed >= 0
         """
         other_game_genres = other_game.genres
         return self.genre_count(other_game_genres) >= total_needed
 
-    def genre_list(self, genre_collection: set) -> set:
+    def genre_list(self, genre_collection: set[str]) -> set[str]:
         """Returns a list of all the similar genres between self and the given genre collection"""
         new_set = self.genres.intersection(genre_collection)
         return new_set
