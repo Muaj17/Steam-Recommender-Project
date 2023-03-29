@@ -66,8 +66,21 @@ class GameNode:
         self.game = game
         self.neighbours = []
 
-    def top_similar_games(self, total: int, visited_so_far: set[Game]) -> list[Game]:
-        """Returns a list of the most similar games of genre to self.game"""
+    def top_similar_games(self, total: int) -> list[Game]:
+        """Returns a list of at most 'total' length containing the most similar games of genre to self.game
+
+        Preconditions:
+        - total >= 0
+        """
+        return self._helper_top_similar_games(total, set())
+
+    def _helper_top_similar_games(self, total: int, visited_so_far: set[Game]) -> list[Game]:
+        """Returns a list of at most 'total' length containing the most similar games of genre to self.game
+        Doesn't visit any games included in 'visited_so_far'
+
+        Preconditions:
+        - total >= 0
+        """
         if total > len(self.neighbours):
             total = len(self.neighbours)
         if total == 0:
@@ -82,7 +95,7 @@ class GameNode:
                     most_similar_game = neighbour.game
             list_so_far.append(most_similar_game)
             visited_so_far.add(most_similar_game)
-            return list_so_far + self.top_similar_games(total - 1, visited_so_far)
+            return list_so_far + self._helper_top_similar_games(total - 1, visited_so_far)
 
 
 class GameGraph:
