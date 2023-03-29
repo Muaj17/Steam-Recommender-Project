@@ -102,39 +102,54 @@ class GameGraph:
     """A graph containing nodes that represent a game. Nodes are connected depending on the number of genres that they
     have in common with another game and the user's preferred genres.
     Instance Attributes:
-    - game_total:
+    - min_genres_game:
         The minimum number of genres that a game in the graph must have in common with the user's preferred genres.
-    - edge_total:
+    - min_genres_edge:
         The minimum number of genres that two nodes must have in order for an edge to be formed between them.
-    Representation Invariants:
-    - all(self._nodes[name].name = name for name in self_nodes)
-    - self_total >= 0
-    """
-    game_total: int
-    edge_total: int
-    user_genres: set
-    _nodes: dict[str, GameNode]
+    - user_genres:
+        A set containing the user's preferred genres.
 
-    def __init__(self, genres: int) -> None:
+    Private Instance Attibutes:
+    - _nodes:
+        A mapping from game ids to GameNode objects in the GameGraph.
+
+    Representation Invariants:
+    - all(self._nodes[game_id].game_id = game_id for game_id in self_nodes)
+    - self_total >= 0
+    - min_genres_game >= 0
+    - min_genres_edge >= 0
+    """
+    min_genres_game: int
+    min_genres_edge: int
+    user_genres: set[str]
+    _nodes: dict[int, GameNode]
+
+    def __init__(self, min_genres_game: int, min_genres_edge: int, user_genres: set[str]) -> None:
         """Initializes the game graph"""
         self._nodes = {}
-        self.game_total = genres
+        self.min_genres_game = min_genres_game
+        self.min_genres_edge = min_genres_edge
+        self.user_genres = user_genres
 
-    def add_game(self, node: GameNode) -> None:
-        """Adds a game node into the graph if it contains a certain amount of games of the user's preference"""
-        game_count = node.game.genre_count(self.user_genres)
-        game_name = node.game.name
-        if game_count >= self.game_total:
-            self._nodes[game_name] = node
+    def add_game(self, game: Game) -> None:
+        """Adds a game node into the graph if they have the minimum amount of intersecting genres with the
+        user (i.e. self.min_genres_game)"""
+        game_count = game.genre_count(self.user_genres)
+        game_id = game.game_id
+        if game_count >= self.min_genres_game:
+            self._nodes[game_id] = GameNode(game)
 
-    def add_edge(self, game1: str, game2: str) -> None:
-        """Creates an edge between two games
+    def add_edge(self, game1: int, game2: int) -> None:
+        """Creates an edge between the two games with ids 'game1' and 'game2' if they have the minimum amount
+        of intersecting genres (i.e. self.min_genres_edge)
+
         Preconditions:
         - game1 in self._nodes and game2 in self._nodes
+        - game1 != game2
         """
         node1, node2 = self._nodes[game1], self._nodes[game2]
         similar_games = node1.game.genre_count(node2.game.genres)
-        if similar_games >= self.edge_total:
+        if similar_games >= self.min_genres_edge:
             node1.neighbours.append(node2)
             node2.neighbours.append(node1)
 
