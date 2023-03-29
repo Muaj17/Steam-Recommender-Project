@@ -175,12 +175,12 @@ class GameGraph:
             return list_so_far + rec_result
 
 
-def read_data_csv(csv_file: str) -> list[Game]:
-    """Load data from a CSV file and output the data as a list of Games.
+def read_data_csv(csv_file: str) -> dict[int, Game]:
+    """Load data from a CSV file and output the data as a mapping between game ids and their corresponding Game object.
     Preconditions:
         - csv_file refers to a valid CSV file
     """
-    result = []
+    result = {}
 
     with open(csv_file) as f:
         reader = csv.reader(f)
@@ -201,7 +201,7 @@ def read_data_csv(csv_file: str) -> list[Game]:
             price_final = float(row[9])
             # Last 3 are price_original,discount,steam_deck, they are skipped
             curr_game = Game(name, game_id, genres, date_release, operating_systems, price_final, positive_ratio, None)
-            result.append(curr_game)
+            result[game_id] = curr_game
     return result
 
 
@@ -228,16 +228,18 @@ def sort_games(games: list[Game]) -> list[Game]:
 
 def runner(game_file: str, game_metadata_file: str) -> None:
     """Run a simulation based on the data from the given csv file."""
-
-    # part 1 read csv twice
+    # Part 1: Read datasets
     games = read_data_csv(game_file)
-    ganes_tags = read_metadata_json(game_metadata_file)
-    for game in games:
-        for game_tag in ganes_tags:
-            if game.game_id == game_tag[0]:
-                game.genres = game_tag[1]
-    # part 2 tkinter interface(ask for preferred genres)
+    games_metadata = read_metadata_json(game_metadata_file)
 
-    # part 3 calculate meta score
+    for metadata in games_metadata:
+        game_id, genres = metadata
 
-    # part 4 give recommendations(top 5 only)
+        if game_id in games:
+            games[game_id].genres = genres
+
+    # Part 2: Tkinter interface(ask for preferred genres)
+
+    # Part 3: Calculate meta score
+
+    # Part 4: Give recommendations(top 5 only)
