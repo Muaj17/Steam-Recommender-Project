@@ -194,6 +194,9 @@ def read_metadata_json(json_file: str) -> list[tuple]:
 def sort_games(games: list[Game]) -> list[Game]:
     """Creates a sorted list of the games in the given list in descending order of their rating"""
 
+def graph_list(genres: list) -> list[GameGraph]:
+    """Creates a list of game graphs that vary in the amount commonly shared genres that the graph games have with the user"""
+
 
 def runner(game_file: str, game_metadata_file: str) -> None:
     """Run a simulation based on the data from the given csv file."""
