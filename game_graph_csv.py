@@ -1,6 +1,5 @@
 """Code for the game graph"""
 from __future__ import annotations
-from dataclasses import dataclass
 from typing import Optional, Iterable
 from genreselector import GenreSelector
 import tkinter as tk
@@ -8,7 +7,6 @@ import csv
 import json
 
 
-@dataclass
 class Game:
     """A steam game and its various attributes
     Instance Attributes:
@@ -37,7 +35,17 @@ class Game:
     price: float
     positive_ratio: int
     rating: Optional[float]  # meta-score
-
+        
+    def __init__(self, name: str, date: str, operating_system: dict, genres: list[str],
+                 price: float, rating: float) -> None:
+        """Initializes the game instance"""
+        self.name = name
+        self.genres = genres
+        self.date_release = date
+        self.operating_systems = operating_system
+        self.price = price
+        self.rating = rating
+    
     def genre_count(self, user_genres: list[str]) -> int:
         """Counts the number of user preferenced genres and the game genres that are similar"""
         return len(self.genre_list(user_genres))
@@ -112,7 +120,7 @@ class GameGraph:
     - min_genres_edge:
         The minimum number of genres that two nodes must have in order for an edge to be formed between them.
     - user_genres:
-        A set containing the user's preferred genres.
+        A list containing the user's preferred genres.
 
     NOTE:
     - the min_genres_game and min_genres_edge were added in order to create a purpose of the graph data structure.
