@@ -195,7 +195,7 @@ def read_data_csv(csv_file: str) -> dict[int, Game]:
     """
     result = {}
 
-    with open(csv_file) as f:
+    with open(csv_file, encoding='utf-8') as f:
         reader = csv.reader(f)
 
         next(reader)  # skip headers
@@ -226,7 +226,7 @@ def read_metadata_json(json_file: str) -> list[tuple]:
     """
     result = []
 
-    with open(json_file) as f:
+    with open(json_file, encoding='utf-8') as f:
         for line in [str.strip(line.lower()) for line in f]:
             curr_full_metadata = json.loads(line)
             relevant_metadata = (int(curr_full_metadata.get('app_id')), curr_full_metadata.get('tags'))
