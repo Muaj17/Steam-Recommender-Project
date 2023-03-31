@@ -310,15 +310,27 @@ def runner(game_file: str, game_metadata_file: str) -> None:
             games[game_id].genres = genres
 
     # Part 2: Tkinter interface(ask for preferred genres)
+    # Create a new tkinter window
     root = tk.Tk()
-    root.title("Steam Game Recommender")
+    root.title("Genre Selector")
+    root.geometry("400x300")
 
-    genre_selector = GenreSelector(root)
+    # Information for user
+    intro_text = tk.Label(root,
+                          text="Welcome to the Steam Game Recommender!\nThis program will recommend the top 5 games "
+                               "you should play based on your preference of genre.\nPlease select the genres you're "
+                               "interested in"
+                               "below.", font=("Arial", 14))
+    intro_text.grid(pady=20)
 
+    # Call the GenreSelector class within the tkinter window
+    selector = GenreSelector(root)
+
+    # Run the tkinter mainloop
     root.mainloop()
 
     # Get selected genres from genre selector
-    selected_genres = genre_selector.genres
+    selected_genres = selector.genres
 
     # Part 3: Calculate meta score
 
