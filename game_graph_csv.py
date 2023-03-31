@@ -2,6 +2,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Iterable
+from genreselector import GenreSelector
+import tkinter as tk
 import csv
 import json
 
@@ -308,6 +310,15 @@ def runner(game_file: str, game_metadata_file: str) -> None:
             games[game_id].genres = genres
 
     # Part 2: Tkinter interface(ask for preferred genres)
+    root = tk.Tk()
+    root.title("Steam Game Recommender")
+
+    genre_selector = GenreSelector(root)
+
+    root.mainloop()
+
+    # Get selected genres from genre selector
+    selected_genres = genre_selector.genres
 
     # Part 3: Calculate meta score
 
