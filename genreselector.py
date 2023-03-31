@@ -60,26 +60,3 @@ class GenreSelector:
 
         # Destroy genre selector window
         self.parent.destroy()
-
-
-# Create a new tkinter window
-root = tk.Tk()
-root.title("Genre Selector")
-root.geometry("400x300")
-
-# Information for user
-intro_text = tk.Label(root, text="Welcome to the Steam Game Recommender!\nThis program will recommend the top 5 games "
-                                 "you should play based on your preference of genre.\nPlease select the genres you're "
-                                 "interested in"
-                                 "below.", font=("Arial", 14))
-intro_text.grid(pady=20)
-
-# Call the GenreSelector class within the tkinter window
-selector = GenreSelector(root)
-
-# Run the tkinter mainloop
-root.mainloop()
-
-# Retrieve selected genres after the window is closed
-preferred_genres = selector.genres
-print(preferred_genres)
