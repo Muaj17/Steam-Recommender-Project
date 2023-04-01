@@ -16,9 +16,6 @@ class Game:
         The id of the game.
     - date_release:
         The date for when the game was released.
-    - operating_systems:
-        A dictionary consisting of a mapping between various operating systems and the game's
-        compatibility with them.(str : bool)
     - price:
         the price of the game, in US dollars.
     - positive_ratio:
@@ -30,20 +27,16 @@ class Game:
     name: str
     game_id: int  # added
     genres: list[str]
-    date_release: str  # swap it to str, make it easier to load
-    operating_systems: dict[str, bool]
     price: float
     positive_ratio: int
     rating: Optional[float]  # meta-score
 
-    def __init__(self, name: str, game_id: int, genres: list[str], date: str, operating_system: dict,
-                 price: float, positive_ratio: int, rating: float) -> None:
+    def __init__(self, name: str, game_id: int, genres: list[str], price: float, positive_ratio: int,
+                 rating: float) -> None:
         """Initializes the game instance"""
         self.name = name
         self.game_id = game_id
         self.genres = genres
-        self.date_release = date
-        self.operating_systems = operating_system
         self.price = price
         self.positive_ratio = positive_ratio
         self.rating = rating
@@ -173,7 +166,43 @@ class GameGraph:
             if neighbour in self._user_nodes:
                 list_so_far.append(neighbour)
         return list_so_far
-    
+
+    def max_price(self) -> float:
+        """Returns the highest price out of all the games in self"""
+        max_so_far = 0.0
+        for id in self._nodes:
+            node = self._nodes[id]
+            if node.game.price > max_so_far:
+                max_so_far = node.game.price
+        return max_so_far
+
+    def max_rating(self) -> int:
+        """Returns the highest rating out of all the games in self"""
+        max_so_far = 0
+        for id in self._nodes:
+            node = self._nodes[id]
+            if node.game.rating > max_so_far:
+                max_so_far = node.game.rating
+        return max_so_far
+
+    def compute_score(self, game_node: GameNode) -> None:
+        """Computes the game recommendation score for the given game and mutates the game's metascore for the
+        given game node.
+
+        Preconditions:
+        - game_node in self._nodes
+        """
+        rating_price_weight = 0.7
+        neighbour_weight = 0.3
+        assert rating_price_weight + neighbour_weight == 1.0
+        game = game_node.game
+        max_price = self.max_price()
+        max_rating = self.max_rating()
+        rating_price_score = (game.rating / max_rating) * ((max_price - game.price) / max_price)
+        user_game_neighbours = self.all_user_node_neighbours(game_node)
+        neighbour_score = (len(user_game_neighbours) / len(self._user_nodes))
+        game.score = rating_price_score * rating_price_weight + neighbour_score * neighbour_weight
+
 
 def read_data_csv(csv_file: str) -> dict[int, Game]:
     """Load data from a CSV file and output the data as a mapping between game ids and their corresponding Game object.
@@ -190,7 +219,6 @@ def read_data_csv(csv_file: str) -> dict[int, Game]:
         for row in reader:
             game_id = int(row[0])
             name = row[1]
-            date_release = row[2]
             genres = []
             operating_systems = {'win': bool(row[3]),
                                  'mac': bool(row[4]),
@@ -200,7 +228,7 @@ def read_data_csv(csv_file: str) -> dict[int, Game]:
             # 8 is skipped for user_reviews
             price_final = float(row[9])
             # Last 3 are price_original,discount,steam_deck, they are skipped
-            curr_game = Game(name, game_id, genres, date_release, operating_systems, price_final, positive_ratio, 0.0)
+            curr_game = Game(name, game_id, genres, operating_systems, price_final, positive_ratio, 0.0)
             result[game_id] = curr_game
     return result
 
@@ -245,10 +273,8 @@ def generate_graph(game_file: str, json_file: str, user_games: list, genre_edge:
 
 def sort_games(games: list[Game]) -> None:
     """Sorts a list of games in the given list in descending order of their rating by mutating the list.
-    Note:
-    - This sorting function uses the iterative insert method.
     """
-    for index1 in range(0, len(games) - 1):  # len(games) - 1 to prevent index out of bounds error
+    for index1 in range(0, len(games) - 1):
         if games[index1].rating < games[index1 + 1].rating:
             games[index1], games[index1 + 1] = games[index1 + 1], games[index1]
             for index2 in range(index1, 0, -1):
@@ -323,8 +349,8 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     # Part 3: Calculate meta score
 
     # Part 4: Give recommendations(top 5 only)
-    
-    
+
+
 if __name__ == '__main__':
     import python_ta
     python_ta.check_all(config={
