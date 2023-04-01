@@ -323,3 +323,11 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     # Part 3: Calculate meta score
 
     # Part 4: Give recommendations(top 5 only)
+    
+    
+if __name__ == '__main__':
+    import python_ta
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': ['genreselector', 'tkinter', 'csv', 'json'],
+    })
