@@ -129,9 +129,9 @@ class GameGraph:
     def add_all_edges(self) -> None:
         """Creates all the edge that need to be made in the graph"""
         for user_id in self._user_nodes:
-            for id in self._nodes:
+            for other_id in self._nodes:
                 user_node = self._user_nodes[user_id]
-                other_node = self._user_nodes[id]
+                other_node = self._user_nodes[other_id]
                 if user_node != other_node:
                     self.add_edge(other_node, user_node)
 
@@ -165,6 +165,14 @@ class GameGraph:
             top_games.append(possible_suggestions[index_so_far])
             index_so_far += 1
         return top_games
+
+    def all_user_node_neighbours(self, node: GameNode) -> list[GameNode]:
+        """Returns a list of all node's neighbours that are also in self._user_nodes"""
+        list_so_far = []
+        for neighbour in node.neighbours:
+            if neighbour in self._user_nodes:
+                list_so_far.append(neighbour)
+        return list_so_far
     
 
 def read_data_csv(csv_file: str) -> dict[int, Game]:
@@ -248,9 +256,9 @@ def sort_games(games: list[Game]) -> None:
                     games[index2], games[index2 - 1] = games[index2 - 1], games[index2]
 
 
-def graph_list(user_games: list, total_min_edge: int, csv_file: str, json_file: str) -> list[GameGraph]:
-    """Creates a list of game graphs that vary in the amount commonly shared genres that the graph games
-    have with the user.
+def graph_list(user_games: list, total_min_edge: int, csv_file: str, json_file: str) -> dict[GameGraph, int]:
+    """Creates a dictionary of game graphs and their corresponding minimum genre edge requirement.
+
     Notes:
         -genres is a list of game genres that the user likes.
         -total_min_edge refers to a range of values from 0 (inclusive) to total_min_edge - 1. Each integer in the range
@@ -258,11 +266,23 @@ def graph_list(user_games: list, total_min_edge: int, csv_file: str, json_file: 
     Preconditions:
     - total >= 1
     """
-    game_graphs = []
+    game_graphs = {}
     for min_edge in range(0, total_min_edge):
         game_graph = generate_graph(csv_file, json_file, user_games, min_edge)
-        game_graphs.append(game_graph)
+        game_graphs[game_graph] = min_edge
     return game_graphs
+
+
+def highest_scoring_games(graph_list: list[GameGraph], total_games: int) -> list[Game]:
+    """Creates a list of the top scored games that will be recommended to the user. The total games recommended
+    is based on the vaue of total_games.
+
+    Preconditions:
+    - total_games > 0
+    """
+    list_so_far = []
+    # NEEDS TO BE IMPLEMENTED
+    return list_so_far
 
 
 def runner(game_file: str, game_metadata_file: str) -> None:
