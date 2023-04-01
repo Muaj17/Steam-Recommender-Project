@@ -1,6 +1,6 @@
 """Code for the game graph"""
 from __future__ import annotations
-from typing import Optional, Iterable
+from typing import Optional
 from genreselector import GenreSelector
 import tkinter as tk
 import csv
@@ -55,7 +55,6 @@ class Game:
     def same_num_game(self, other_game: Game, total_needed: int) -> bool:
         """Compares self to another game and determines if they have a certain number of games, depending on what is
         inputted into the total_needed paramter
-
         Preconditions:
         - total_needed >= 0
         """
@@ -81,122 +80,92 @@ class GameNode:
         self.game = game
         self.neighbours = []
 
-    def top_similar_games(self, total: int) -> list[Game]:
-        """Returns a list of at most 'total' length containing the most similar games of genre to self.game
-
-        Preconditions:
-        - total >= 0
+    def top_similar_games(self) -> list[GameNode]:
+        """Returns a sorted list of all the node's neighbour's game score in descending order.
         """
-        return self._helper_top_similar_games(total, set())
-
-    def _helper_top_similar_games(self, total: int, visited_so_far: set[Game]) -> list[Game]:
-        """Returns a list of at most 'total' length containing the most similar games of genre to self.game
-        Doesn't visit any games included in 'visited_so_far'
-
-        Preconditions:
-        - total >= 0
-        """
-        if total > len(self.neighbours):
-            total = len(self.neighbours)
-        if total == 0:
-            return []
-        else:
-            list_so_far = []
-            max_genres_so_far = 0
-            most_similar_game = None
-            for neighbour in self.neighbours:
-                total_genres = self.game.genre_count(neighbour.game.genres)
-                if neighbour.game not in visited_so_far and total_genres > max_genres_so_far:
-                    most_similar_game = neighbour.game
-            list_so_far.append(most_similar_game)
-            visited_so_far.add(most_similar_game)
-            return list_so_far + self._helper_top_similar_games(total - 1, visited_so_far)
+        games = self.neighbours.copy()
+        if len(games) != 0:
+            for index1 in range(0, len(games) - 1):
+                if games[index1].game.rating < games[index1 + 1].game.rating:
+                    games[index1], games[index1 + 1] = games[index1 + 1], games[index1]
+                    for index2 in range(index1, 0, -1):
+                        if games[index2].game.rating > games[index2 - 1].game.rating:
+                            games[index2], games[index2 - 1] = games[index2 - 1], games[index2]
+        return games
 
 
 class GameGraph:
     """A graph containing nodes that represent a game. Nodes are connected depending on the number of genres that they
     have in common with another game and the user's preferred genres.
     Instance Attributes:
-    - min_genres_game:
-        The minimum number of genres that a game in the graph must have in common with the user's preferred genres.
-    - min_genres_edge:
-        The minimum number of genres that two nodes must have in order for an edge to be formed between them.
-    - user_genres:
-        A list containing the user's preferred genres.
-
-    NOTE:
-    - the min_genres_game and min_genres_edge were added in order to create a purpose of the graph data structure.
-    Otherwise, we are solely using the nodes for their scores, which does not take advantage of the edges formed between
-    nodes. Thus, the min_genres_game and min_genres_edge can be used as a way of filtering
-    Private Instance Attibutes:
-    - _nodes:
-        A mapping from game ids to GameNode objects in the GameGraph.
+    - self.user_games is a list of all the games that the user has played/or wants recommendations to be based on.
 
     Representation Invariants:
-    - all(self._nodes[game_id].game_id = game_id for game_id in self_nodes)
-    - self_total >= 0
-    - min_genres_game >= 0
-    - min_genres_edge >= 0
+    - all(self._nodes[game_id].game_id = game_id for game_id in self._nodes)
+    - self.min_edge_genre >= 0
     """
-    min_genres_game: int
-    min_genres_edge: int
-    user_genres: list[str]
-    _nodes: dict[int, GameNode]
+    # Private Instance Attibutes:
+    # - _nodes: A mapping from game ids to GameNode objects in the GameGraph.
 
-    def __init__(self, min_genres_game: int, min_genres_edge: int, user_genres: list[str]) -> None:
+    min_edge_genre: int
+    user_games: list[str]
+    _nodes: dict[int, GameNode]
+    _user_nodes: dict[int, GameNode]
+
+    def __init__(self, user_games: list[str], min_edge_genre: int) -> None:
         """Initializes the game graph"""
         self._nodes = {}
-        self.min_genres_game = min_genres_game
-        self.min_genres_edge = min_genres_edge
-        self.user_genres = user_genres
+        self.user_games = user_games
+        self.min_edge_genre = min_edge_genre
 
     def add_game(self, game: Game) -> None:
-        """Adds a game node into the graph if they have the minimum amount of intersecting genres with the
-        user (i.e. self.min_genres_game)"""
-        game_count = game.genre_count(self.user_genres)
+        """Adds a game node into the graph"""
         game_id = game.game_id
-        if game_count >= self.min_genres_game:
-            self._nodes[game_id] = GameNode(game)
+        game_node = GameNode(game)
+        self._nodes[game_id] = game_node
+        if game.name.lower() in self.user_games:
+            self._user_nodes[game_id] = game_node
 
-    def add_edge(self, game1: GameNode, game2: GameNode) -> None:
+    def add_all_edges(self) -> None:
+        """Creates all the edge that need to be made in the graph"""
+        for user_id in self._user_nodes:
+            for id in self._nodes:
+                user_node = self._user_nodes[user_id]
+                other_node = self._user_nodes[id]
+                if user_node != other_node:
+                    self.add_edge(other_node, user_node)
+
+    def add_edge(self, game1: GameNode, user_node: GameNode) -> None:
         """Creates an edge between two game nodes if they have the minimum amount of intersecting genres
-
         Preconditions:
-        - game1 in self._nodes and game2 in self._nodes
+        - game1 in self._nodes and user_game in self._nodes
+        - user_game.game.name in [game.lower for game in self.user_games]
         """
-        similar_games = game1.game.genre_count(game2.game.genres)
-        if similar_games >= self.min_genres_edge:
-            game1.neighbours.append(game2)
-            game2.neighbours.append(game1)
+        similar_games = game1.game.genre_count(user_node.game.genres)
+        if similar_games >= self.min_edge_genre:
+            game1.neighbours.append(user_node)
+            user_node.neighbours.append(game1)
 
-    def top_games(self, total: int, recorded_games: set[Game]) -> list[Game]:
-        """Returns a list of the top recommended games depending on the inputted parameter
+    def top_games(self, total: int) -> list[Game]:
+        """Returns a list of the top recommended games depending on the inputted parameter. The returned list of games
+        are in descending order in terms of their score.
         Preconditions:
         - total >= 0
         """
-        if total == 0:
-            return []
-        else:
-            list_so_far = []
-            max_game = None
-            max_score_so_far = 0
-            for game in self._nodes:
-                node = self._nodes[game]
-                if node.game not in recorded_games and node.game.rating > max_score_so_far:
-                    max_game = node.game
-                    max_score_so_far = node.game.rating
-            recorded_games.add(max_game)
-            list_so_far.append(max_game)
-            rec_result = self.top_games(total - 1, recorded_games)
-            return list_so_far + rec_result
-
-    def node_list(self) -> list[GameNode]:
-        """Returns a list of all the game nodes in self"""
-        list_so_far = []
-        for game_id in self._nodes:
-            list_so_far.append(self._nodes[game_id])
-        return list_so_far
-
+        possible_suggestions = []
+        for user_id in self._user_nodes:
+            neighbour_game_list = []
+            for neighbour in self._nodes[user_id].neighbours:
+                neighbour_game_list.append(neighbour.game)
+            possible_suggestions.extend(neighbour_game_list)
+        sort_games(possible_suggestions)
+        top_games = []
+        index_so_far = 0
+        while index_so_far == total - 1 or index_so_far == len(possible_suggestions) - 1:
+            top_games.append(possible_suggestions[index_so_far])
+            index_so_far += 1
+        return top_games
+    
 
 def read_data_csv(csv_file: str) -> dict[int, Game]:
     """Load data from a CSV file and output the data as a mapping between game ids and their corresponding Game object.
@@ -245,35 +214,29 @@ def read_metadata_json(json_file: str) -> list[tuple]:
     return result
 
 
-def generate_graph(game_file: str, json_file: str, genres: list, genre_edge: int, min_genre: int) -> GameGraph:
+def generate_graph(game_file: str, json_file: str, user_games: list, genre_edge: int) -> GameGraph:
     """Creates a game graph
     Notes:
     -game_file refers to a csv file consisting of games and their attributes.
     -json_file is a json file that consists of the every game's genre in.
-    -min_genre refers to the min_genre_game attribute in the game graph.
-    -genre_edge refers to the min_genres_edge attribute in the game graph
+    -user_games refers to a list of games that the user has inputted.
 
     """
     json_result = read_metadata_json(json_file)
     csv_result = read_data_csv(game_file)
-    game_graph = GameGraph(min_genre, genre_edge, genres)
+    game_graph = GameGraph(user_games, genre_edge)
     for metadata in json_result:
         # Adds the nodes to the graph
         game = csv_result[metadata[0]]
         game.genres = metadata[1]
         game_graph.add_game(game)
-    node_list = game_graph.node_list()
     # Creates edges between each node if applicable.
-    for node1 in node_list:
-        for node2 in node_list:
-            if node1 != node2:
-                game_graph.add_edge(node1, node2)
+    game_graph.add_all_edges()
     return game_graph
 
 
 def sort_games(games: list[Game]) -> None:
     """Sorts a list of games in the given list in descending order of their rating by mutating the list.
-
     Note:
     - This sorting function uses the iterative insert method.
     """
@@ -285,25 +248,20 @@ def sort_games(games: list[Game]) -> None:
                     games[index2], games[index2 - 1] = games[index2 - 1], games[index2]
 
 
-def graph_list(genres: list, total_min_genre: int, total_min_edge: int, csv_file: str, json_file: str) \
-        -> list[GameGraph]:
+def graph_list(user_games: list, total_min_edge: int, csv_file: str, json_file: str) -> list[GameGraph]:
     """Creates a list of game graphs that vary in the amount commonly shared genres that the graph games
     have with the user.
-
     Notes:
         -genres is a list of game genres that the user likes.
-        -total_min_genre refers to the range of values min_genre values hat a game graph could have.
-        This range is from 0 (inclusive) to total_min_genre (non-inclusive).
-        -total_min_edge refers to the range of
-
+        -total_min_edge refers to a range of values from 0 (inclusive) to total_min_edge - 1. Each integer in the range
+        will be the minimum genre edge requirement for a graph added into the game graph list.
     Preconditions:
     - total >= 1
     """
     game_graphs = []
-    for min_genre in range(0, total_min_genre):
-        for min_edge in range(0, total_min_edge):
-            game_graph = generate_graph(csv_file, json_file, genres, min_edge, min_genre)
-            game_graphs.append(game_graph)
+    for min_edge in range(0, total_min_edge):
+        game_graph = generate_graph(csv_file, json_file, user_games, min_edge)
+        game_graphs.append(game_graph)
     return game_graphs
 
 
@@ -345,4 +303,3 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     # Part 3: Calculate meta score
 
     # Part 4: Give recommendations(top 5 only)
-
