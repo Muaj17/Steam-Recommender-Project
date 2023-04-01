@@ -170,8 +170,8 @@ class GameGraph:
     def max_price(self) -> float:
         """Returns the highest price out of all the games in self"""
         max_so_far = 0.0
-        for id in self._nodes:
-            node = self._nodes[id]
+        for game_id in self._nodes:
+            node = self._nodes[game_id]
             if node.game.price > max_so_far:
                 max_so_far = node.game.price
         return max_so_far
@@ -220,15 +220,11 @@ def read_data_csv(csv_file: str) -> dict[int, Game]:
             game_id = int(row[0])
             name = row[1]
             genres = []
-            operating_systems = {'win': bool(row[3]),
-                                 'mac': bool(row[4]),
-                                 'linux': bool(row[5])}
             # 6 is skipped for rating(all words)
             positive_ratio = int(row[7])
             # 8 is skipped for user_reviews
             price_final = float(row[9])
-            # Last 3 are price_original,discount,steam_deck, they are skipped
-            curr_game = Game(name, game_id, genres, operating_systems, price_final, positive_ratio, 0.0)
+            curr_game = Game(name, game_id, genres, price_final, positive_ratio, 0.0)
             result[game_id] = curr_game
     return result
 
