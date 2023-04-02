@@ -284,7 +284,8 @@ class GameGraph:
             while possible_suggestions != set() or len(actual_suggestions) == total_games:
                 highest_game = highest_scoring_game(possible_suggestions)
                 possible_suggestions.remove(highest_game)
-                actual_suggestions.append(highest_game)
+                if highest_game not in [self._user_nodes[key].game for key in self._user_nodes]:
+                    actual_suggestions.append(highest_game)
             sort_games(actual_suggestions)
             return actual_suggestions
         else:
@@ -424,6 +425,7 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     num_games_recommended = 5
     # Note: the returned list of games are in sorted order in terms
     top_games = game_graph.highest_scoring_games(num_games_recommended)
+    assert len(top_games) == num_games_recommended
 
 
 if __name__ == '__main__':
