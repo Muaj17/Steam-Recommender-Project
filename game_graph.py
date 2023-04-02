@@ -73,19 +73,6 @@ class GameNode:
         self.game = game
         self.neighbours = []
 
-    def top_similar_games(self) -> list[GameNode]:
-        """Returns a sorted list of all the node's neighbour's game score in descending order.
-        """
-        games = self.neighbours.copy()
-        if len(games) != 0:
-            for index1 in range(0, len(games) - 1):
-                if games[index1].game.rating < games[index1 + 1].game.rating:
-                    games[index1], games[index1 + 1] = games[index1 + 1], games[index1]
-                    for index2 in range(index1, 0, -1):
-                        if games[index2].game.rating > games[index2 - 1].game.rating:
-                            games[index2], games[index2 - 1] = games[index2 - 1], games[index2]
-        return games
-
 
 class GameGraph:
     """A graph containing nodes that represent a game. Nodes are connected depending on the number of genres that they
@@ -139,26 +126,6 @@ class GameGraph:
             game1.neighbours.append(user_node)
             user_node.neighbours.append(game1)
 
-    def top_games(self, total: int) -> list[Game]:
-        """Returns a list of the top recommended games depending on the inputted parameter. The returned list of games
-        are in descending order in terms of their score.
-        Preconditions:
-        - total >= 0
-        """
-        possible_suggestions = []
-        for user_id in self._user_nodes:
-            neighbour_game_list = []
-            for neighbour in self._nodes[user_id].neighbours:
-                neighbour_game_list.append(neighbour.game)
-            possible_suggestions.extend(neighbour_game_list)
-        sort_games(possible_suggestions)
-        top_games = []
-        index_so_far = 0
-        while index_so_far == total - 1 or index_so_far == len(possible_suggestions) - 1:
-            top_games.append(possible_suggestions[index_so_far])
-            index_so_far += 1
-        return top_games
-
     def all_user_node_neighbours(self, node: GameNode) -> list[GameNode]:
         """Returns a list of all node's neighbours that are also in self._user_nodes"""
         list_so_far = []
@@ -176,14 +143,24 @@ class GameGraph:
                 max_so_far = node.game.price
         return max_so_far
 
-    def max_rating(self) -> int:
+    def max_positive_ratio(self) -> int:
         """Returns the highest rating out of all the games in self"""
         max_so_far = 0
-        for id in self._nodes:
-            node = self._nodes[id]
-            if node.game.rating > max_so_far:
-                max_so_far = node.game.rating
+        for game_id in self._nodes:
+            node = self._nodes[game_id]
+            if node.game.positive_ratio > max_so_far:
+                max_so_far = node.game.positive_ratio
         return max_so_far
+
+    def user_genres(self) -> list[str]:
+        """Returns the amount of genres that the user has played based on their inputted games"""
+        genres_so_far = []
+        for game_id in self._user_nodes:
+            node = self._user_nodes[game_id]
+            for genre in node.game.genres:
+                if genre not in genres_so_far:
+                    genres_so_far.append(genre)
+        return genres_so_far
 
     def compute_score(self, game_node: GameNode) -> None:
         """Computes the game recommendation score for the given game and mutates the game's metascore for the
@@ -192,16 +169,60 @@ class GameGraph:
         Preconditions:
         - game_node in self._nodes
         """
-        rating_price_weight = 0.7
+        rating_price_weight = 0.6
         neighbour_weight = 0.3
-        assert rating_price_weight + neighbour_weight == 1.0
+        genre_weight = 0.1
+        assert rating_price_weight + neighbour_weight + genre_weight == 1.0
+        user_genres = self.user_genres()
         game = game_node.game
         max_price = self.max_price()
-        max_rating = self.max_rating()
-        rating_price_score = (game.rating / max_rating) * ((max_price - game.price) / max_price)
+        max_ratio = self.max_positive_ratio()
+        rating_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rating_price_weight
         user_game_neighbours = self.all_user_node_neighbours(game_node)
-        neighbour_score = (len(user_game_neighbours) / len(self._user_nodes))
-        game.score = rating_price_score * rating_price_weight + neighbour_score * neighbour_weight
+        neighbour_score = (len(user_game_neighbours) / len(self._user_nodes)) * neighbour_weight
+        genre_score = (game.genre_count(user_genres) / len(user_genres)) * 0.1
+        game.rating = rating_price + neighbour_score + genre_score
+
+    def top_games(self, total: int) -> list[Game]:
+        """Returns a list of the top recommended games depending on the inputted parameter. The returned list of games
+        are in descending order in terms of their score.
+        Preconditions:
+        - total >= 0
+        """
+        possible_suggestions = set()
+        for game_id in self._nodes:
+            possible_suggestions.add(self._nodes[game_id].game)
+        actual_suggestions = []
+        while len(actual_suggestions) != total or len(possible_suggestions) == 0:
+            game = highest_scoring_game(possible_suggestions)
+            possible_suggestions.remove(game)
+            actual_suggestions.append(game)
+        sort_games(actual_suggestions)
+        return actual_suggestions
+
+    def highest_scoring_games(self, total_games: int) -> list[Game]:
+        """Creates a list of the top scored games that will be recommended to the user. The total games recommended
+        is based on the vaue of total_games.
+
+        Preconditions:
+        - total_games > 0
+        """
+        possible_suggestions = set()
+        for game_id in self._user_nodes:
+            for neighbour in self._user_nodes[game_id].neighbours:
+                if neighbour not in possible_suggestions:
+                    possible_suggestions.add(neighbour.game)
+        actual_suggestions = []
+        if possible_suggestions != set():
+            while possible_suggestions != set() or len(actual_suggestions) == total_games:
+                highest_game = highest_scoring_game(possible_suggestions)
+                possible_suggestions.remove(highest_game)
+                actual_suggestions.append(highest_game)
+            sort_games(actual_suggestions)
+            return actual_suggestions
+        else:
+            # When the user has not inputted any games
+            return self.top_games(total_games)
 
 
 def read_data_csv(csv_file: str) -> dict[int, Game]:
@@ -278,33 +299,15 @@ def sort_games(games: list[Game]) -> None:
                     games[index2], games[index2 - 1] = games[index2 - 1], games[index2]
 
 
-def graph_list(user_games: list, total_min_edge: int, csv_file: str, json_file: str) -> dict[GameGraph, int]:
-    """Creates a dictionary of game graphs and their corresponding minimum genre edge requirement.
-
-    Notes:
-        -genres is a list of game genres that the user likes.
-        -total_min_edge refers to a range of values from 0 (inclusive) to total_min_edge - 1. Each integer in the range
-        will be the minimum genre edge requirement for a graph added into the game graph list.
-    Preconditions:
-    - total >= 1
-    """
-    game_graphs = {}
-    for min_edge in range(0, total_min_edge):
-        game_graph = generate_graph(csv_file, json_file, user_games, min_edge)
-        game_graphs[game_graph] = min_edge
-    return game_graphs
-
-
-def highest_scoring_games(graph_list: list[GameGraph], total_games: int) -> list[Game]:
-    """Creates a list of the top scored games that will be recommended to the user. The total games recommended
-    is based on the vaue of total_games.
-
-    Preconditions:
-    - total_games > 0
-    """
-    list_so_far = []
-    # NEEDS TO BE IMPLEMENTED
-    return list_so_far
+def highest_scoring_game(game_list: set[Game]) -> Game:
+    """Returns the highest scoring game from a set of games"""
+    highest_score_so_far = 0
+    game_so_far = None
+    for game in game_list:
+        if game.rating >= highest_score_so_far:
+            highest_score_so_far = game.rating
+            game_so_far = game
+    return game_so_far
 
 
 def runner(game_file: str, game_metadata_file: str) -> None:
@@ -350,6 +353,7 @@ def runner(game_file: str, game_metadata_file: str) -> None:
 if __name__ == '__main__':
     import python_ta
     python_ta.check_all(config={
-        'max-line-length': 120,
         'extra-imports': ['genreselector', 'tkinter', 'csv', 'json'],
+        'allowed-io': [],
+        'max-line-length': 120
     })
