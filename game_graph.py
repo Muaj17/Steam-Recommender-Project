@@ -90,15 +90,18 @@ class GameGraph:
 
     Instance Attributes:
     - self.user_games is a list of all the games that the user has played/or wants recommendations to be based on.
+    - min_edge_genre is the minimum number of genres that a game needs to share with a user played game in order for
+    an edge to be formed between each game node.
+    - user_max_price is the maximum price that the user is willing to pay for a game.
 
     Representation Invariants:
     - all(self._nodes[game_id].game_id = game_id for game_id in self._nodes)
     - self.user_max_price >= 0.0
-    - all(game_id in self._nodes for game_id in self._user_nodes
+    - all(game_id in self._nodes for game_id in self._user_nodes)
     """
     # Private Instance Attibutes:
     # - _nodes: A mapping from game ids to GameNode objects in the GameGraph.
-    # - _user_ndoes: Similar to _nodes, but only consists of nodes whose game has been played by the user.
+    # - _user_nodes: Similar to _nodes, but only consists of nodes whose game has been played by the user.
 
     min_edge_genre: int
     user_games: list[str]
@@ -139,14 +142,6 @@ class GameGraph:
         if similar_games >= self.min_edge_genre:
             game1.neighbours.append(user_node)
             user_node.neighbours.append(game1)
-
-    def all_user_node_neighbours(self, node: GameNode) -> list[GameNode]:
-        """Returns a list of all node's neighbours that are also in self._user_nodes"""
-        list_so_far = []
-        for neighbour in node.neighbours:
-            if neighbour in self._user_nodes:
-                list_so_far.append(neighbour)
-        return list_so_far
 
     def max_price(self) -> float:
         """Returns the highest price out of all the games in self"""
@@ -196,17 +191,21 @@ class GameGraph:
         neighbour_weight = 0.3
         genre_weight = 0.1
         assert rating_price_weight + neighbour_weight + genre_weight == 1.0
+
         user_genres = self.user_genres()
         game = game_node.game
         max_price = self.max_price()
         max_ratio = self.max_positive_ratio()
+
         rating_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rating_price_weight
-        user_game_neighbours = self.all_user_node_neighbours(game_node)
-        neighbour_score = (len(user_game_neighbours) / len(self._user_nodes)) * neighbour_weight
-        genre_score = (game.genre_count(user_genres) / len(user_genres)) * 0.1
+        neighbour_score = (len(game_node.neighbours) / len(self._user_nodes)) * neighbour_weight
+        genre_score = (game.genre_count(user_genres) / len(user_genres)) * genre_weight
+
         if game.price > self.user_max_price:
+            # The game is too expensive for the user so there is not a point of recommending the game to them.
             game.rating = 0.0
         else:
+            assert (rating_price + neighbour_score + genre_score) <= 1.0
             game.rating = rating_price + neighbour_score + genre_score
 
     def top_games(self, total: int) -> list[Game]:
@@ -218,9 +217,11 @@ class GameGraph:
         - total >= 0
         """
         possible_suggestions = set()
+
         for game_id in self._nodes:
             possible_suggestions.add(self._nodes[game_id].game)
         actual_suggestions = []
+
         while len(actual_suggestions) != total or len(possible_suggestions) == 0:
             game = highest_scoring_game(possible_suggestions)
             possible_suggestions.remove(game)
@@ -228,18 +229,31 @@ class GameGraph:
         sort_games(actual_suggestions)
         return actual_suggestions
 
+    def top_games_genre(self, genres: list[str]) -> list[Game]:
+        """Returns a list of the top games in a specific genre. This function will be used to compute the top games
+        when the user has not inputted any games.
+
+        Preconditions:
+        - genres != []
+        """
+        # TO BE IMPLEMENTED
+
+
+
     def highest_scoring_games(self, total_games: int) -> list[Game]:
         """Creates a list of the top scored games that will be recommended to the user. The total games recommended
         is based on the vaue of total_games.
 
         Preconditions:
-        - total_games > 0
+        - total_games >= 0
         """
         possible_suggestions = set()
+
         for game_id in self._user_nodes:
             for neighbour in self._user_nodes[game_id].neighbours:
                 if neighbour not in possible_suggestions:
                     possible_suggestions.add(neighbour.game)
+
         actual_suggestions = []
         if possible_suggestions != set():
             while possible_suggestions != set() or len(actual_suggestions) == total_games:
@@ -255,8 +269,9 @@ class GameGraph:
 
 def read_data_csv(csv_file: str) -> dict[int, Game]:
     """Load data from a CSV file and output the data as a mapping between game ids and their corresponding Game object.
+
     Preconditions:
-        - csv_file refers to a valid CSV file
+        - csv_file refers to a valid CSV file, meaning that it consists of all the characteristics of every steam game.
     """
     result = {}
 
@@ -282,7 +297,8 @@ def read_metadata_json(json_file: str) -> list[tuple]:
     """Load data from a JSON file and output the data as a list of tuples. The tuple contains the game_id(index 0, int)
     and the tags(index 1, list[str]).
     Preconditions:
-        - json_file refers to a valid JSON file
+        - json_file refers to a valid JSON file in terms of its format, meaning that it consists of the game id,
+        description, and genres of all the games.
     """
     result = []
 
@@ -291,7 +307,6 @@ def read_metadata_json(json_file: str) -> list[tuple]:
             curr_full_metadata = json.loads(line1)
             relevant_metadata = (int(curr_full_metadata.get('app_id')), curr_full_metadata.get('tags'))
             result.append(relevant_metadata)
-
     return result
 
 
@@ -307,7 +322,7 @@ def generate_graph(game_file: str, json_file: str, user_games: list, genre_edge:
     csv_result = read_data_csv(game_file)
     game_graph = GameGraph(user_games, genre_edge)
     for metadata in json_result:
-        # Adds the nodes to the graph
+        # Adds the nodes to the graph and genres to each game.
         game = csv_result[metadata[0]]
         game.genres = metadata[1]
         game_graph.add_game(game)
