@@ -44,20 +44,12 @@ class Game:
 
     def genre_count(self, genre_collection: list[str]) -> int:
         """Counts the number of user preferenced genres and the game genres that are similar"""
+        lowered_list = [genre.lower() for genre in genre_collection]
         list_so_far = []
         for genre in self.genres:
-            if genre in genre_collection:
+            if genre.lower() in lowered_list:
                 list_so_far.append(genre)
         return len(list)
-
-    def same_num_game(self, other_game: Game, total_needed: int) -> bool:
-        """Compares self to another game and determines if they have a certain number of games, depending on what is
-        inputted into the total_needed paramter
-        Preconditions:
-        - total_needed >= 0
-        """
-        other_game_genres = other_game.genres
-        return self.genre_count(other_game_genres) >= total_needed
 
 
 class GameNode:
@@ -96,14 +88,15 @@ class GameGraph:
     # - _user_nodes: Similar to _nodes, but only consists of nodes whose game has been played by the user.
 
     user_game_ids: list[int]
+    user_genre_list: list[str]
     user_max_price: float
     _nodes: dict[int, GameNode]
     _user_nodes: dict[int, GameNode]
 
-    def __init__(self, user_games: list[int], user_max_price: float) -> None:
+    def __init__(self, user_game_ids: list[int], user_game_genres: list[str], user_max_price: float) -> None:
         """Initializes the game graph"""
-        self._nodes = {}
-        self.user_games = user_games
+        self.user_game_ids = user_game_ids
+        self.user_game_genres = user_game_genres
         self.user_max_price = user_max_price
 
     def add_game(self, game: Game) -> None:
@@ -111,7 +104,7 @@ class GameGraph:
         game_id = game.game_id
         game_node = GameNode(game)
         self._nodes[game_id] = game_node
-        if game.name.lower() in self.user_games:
+        if game.name.lower() in self.user_game_ids:
             self._user_nodes[game_id] = game_node
 
     def add_all_edges(self) -> None:
@@ -152,13 +145,16 @@ class GameGraph:
 
     def user_genres(self) -> list[str]:
         """Returns the amount of genres that the user has played based on their inputted games"""
-        genres_so_far = []
-        for game_id in self._user_nodes:
-            node = self._user_nodes[game_id]
-            for genre in node.game.genres:
-                if genre not in genres_so_far:
-                    genres_so_far.append(genre)
-        return genres_so_far
+        if self.user_game_genres != []:
+            return self.user_game_genres
+        else:
+            genres_so_far = set()
+            for game_id in self._user_nodes:
+                node = self._user_nodes[game_id]
+                for genre in node.game.genres:
+                    genres_so_far.add(genre)
+            genres_so_far = list(genres_so_far)
+            return genres_so_far
 
     def edges_exist(self) -> bool:
         """Determines if any edges have been formed in the graph"""
@@ -290,7 +286,7 @@ def read_metadata_json(json_file: str) -> list[tuple]:
     return result
 
 
-def generate_graph(game_file: str, json_file: str, user_games: list, max_price: float) -> GameGraph:
+def generate_graph(game_file: str, json_file: str, user_games: list, user_genres: list, max_price: float) -> GameGraph:
     """Creates a game graph
     Preconditions:
     -game_file refers to a csv file consisting of games and their attributes.
@@ -299,7 +295,7 @@ def generate_graph(game_file: str, json_file: str, user_games: list, max_price: 
     """
     json_result = read_metadata_json(json_file)
     csv_result = read_data_csv(game_file)
-    game_graph = GameGraph(user_games, max_price)
+    game_graph = GameGraph(user_games, user_genres, max_price)
     for metadata in json_result:
         # Adds the nodes to the graph and genres to each game.
         game = csv_result[metadata[0]]
@@ -361,12 +357,12 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     max_price = input_price.price
 
     # Part 3: Build graph and compute scores
-    game_graph = generate_graph(game_file, game_metadata_file, game_ids, max_price)
+    game_graph = generate_graph(game_file, game_metadata_file, game_ids, selected_genres, max_price)
 
     # Part 4: Give recommendations
     num_games_recommended = 5
     # Note: the returned list of games are in sorted order in terms
-    top_games = game_graph.top_games(num_games_recommended)
+    top_games = game_graph.highest_scoring_games(num_games_recommended)
 
 
 if __name__ == '__main__':
