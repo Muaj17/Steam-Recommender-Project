@@ -21,25 +21,36 @@ class Game:
     - rating:
         The metascore of the game, which is dependent on the relationship between the game's attributes and the
         user's preferences.
+
+    Representation Invariants:
+    - self.name != ''
+    - self.price >= 0.0
+    - self.genres != []
+    - 0 <= self.positive_ratio and self.positive_ratio <= 100
+    - 0.0 <= self.rating and self.rating <= 1.0
     """
     name: str
-    game_id: int  # added
+    game_id: int
     genres: list[str]
     price: float
     positive_ratio: int
-    rating: Optional[float]  # meta-score
+    rating: Optional[float]
 
-    def __init__(self, name: str, game_id: int, genres: list[str], price: float, positive_ratio: int) -> None:
+    def __init__(self, game_info: tuple[int, str], genres: list[str], price: float, positive_ratio: int) -> None:
         """Initializes the game instance"""
-        self.name = name
-        self.game_id = game_id
+        self.name = game_info[1]
+        self.game_id = game_info[0]
         self.genres = genres
         self.price = price
         self.positive_ratio = positive_ratio
 
-    def genre_count(self, user_genres: list[str]) -> int:
+    def genre_count(self, genre_collection: list[str]) -> int:
         """Counts the number of user preferenced genres and the game genres that are similar"""
-        return len(self.genre_list(user_genres))
+        list_so_far = []
+        for genre in self.genres:
+            if genre in genre_collection:
+                list_so_far.append(genre)
+        return len(list)
 
     def same_num_game(self, other_game: Game, total_needed: int) -> bool:
         """Compares self to another game and determines if they have a certain number of games, depending on what is
@@ -50,17 +61,20 @@ class Game:
         other_game_genres = other_game.genres
         return self.genre_count(other_game_genres) >= total_needed
 
-    def genre_list(self, genre_collection: list[str]) -> list[str]:
-        """Returns a list of all the similar genres between self and the given genre collection"""
-        list_so_far = []
-        for genre in self.genres:
-            if genre in genre_collection:
-                list_so_far.append(genre)
-        return list_so_far
-
 
 class GameNode:
-    """A node in a game graph"""
+    """A node in a game graph
+
+    Instance Attributes:
+    - game:
+        The game that the node refers to.
+    - neighbours:
+        All the game nodes that self shares a genre with. At least one node in the edge pair is a game that the user
+        has played.
+
+    Representation Invariants:
+    - all(self in neighbour.neighbours for neighbour in self.neighbours)
+    """
     game: Game
     neighbours: list[GameNode]
 
@@ -73,18 +87,22 @@ class GameNode:
 class GameGraph:
     """A graph containing nodes that represent a game. Nodes are connected depending on the number of genres that they
     have in common with another game and the user's preferred genres.
+
     Instance Attributes:
     - self.user_games is a list of all the games that the user has played/or wants recommendations to be based on.
 
     Representation Invariants:
     - all(self._nodes[game_id].game_id = game_id for game_id in self._nodes)
-    - self.min_edge_genre >= 0
+    - self.user_max_price >= 0.0
+    - all(game_id in self._nodes for game_id in self._user_nodes
     """
     # Private Instance Attibutes:
     # - _nodes: A mapping from game ids to GameNode objects in the GameGraph.
+    # - _user_ndoes: Similar to _nodes, but only consists of nodes whose game has been played by the user.
 
     min_edge_genre: int
     user_games: list[str]
+    user_max_price: float
     _nodes: dict[int, GameNode]
     _user_nodes: dict[int, GameNode]
 
@@ -158,6 +176,14 @@ class GameGraph:
                     genres_so_far.append(genre)
         return genres_so_far
 
+    def edges_exist(self) -> bool:
+        """Determines if any edges have been formed in the graph"""
+        for game_id in self._user_nodes:
+            node = self._user_nodes[game_id]
+            if node.neighbours != []:
+                return True
+        return False
+
     def compute_score(self, game_node: GameNode) -> None:
         """Computes the game recommendation score for the given game and mutates the game's metascore for the
         given game node.
@@ -165,6 +191,7 @@ class GameGraph:
         Preconditions:
         - game_node in self._nodes
         """
+        # Weights of various factors on the game and how it will influence the score.
         rating_price_weight = 0.6
         neighbour_weight = 0.3
         genre_weight = 0.1
@@ -177,11 +204,16 @@ class GameGraph:
         user_game_neighbours = self.all_user_node_neighbours(game_node)
         neighbour_score = (len(user_game_neighbours) / len(self._user_nodes)) * neighbour_weight
         genre_score = (game.genre_count(user_genres) / len(user_genres)) * 0.1
-        game.rating = rating_price + neighbour_score + genre_score
+        if game.price > self.user_max_price:
+            game.rating = 0.0
+        else:
+            game.rating = rating_price + neighbour_score + genre_score
 
     def top_games(self, total: int) -> list[Game]:
         """Returns a list of the top recommended games depending on the inputted parameter. The returned list of games
-        are in descending order in terms of their score.
+        are in descending order in terms of their score. This function will be used to compute the top games when
+        the user has not inputted any games.
+
         Preconditions:
         - total >= 0
         """
@@ -241,7 +273,7 @@ def read_data_csv(csv_file: str) -> dict[int, Game]:
             positive_ratio = int(row[7])
             # 8 is skipped for user_reviews
             price_final = float(row[9])
-            curr_game = Game(name, game_id, genres, price_final, positive_ratio)
+            curr_game = Game((game_id, name), genres, price_final, positive_ratio)
             result[game_id] = curr_game
     return result
 
@@ -284,8 +316,25 @@ def generate_graph(game_file: str, json_file: str, user_games: list, genre_edge:
     return game_graph
 
 
+def generate_graphs_genre(game_file: str, json_file: str, user_games: list) -> list[GameGraph]:
+    """Generates game graphs until one of the game graphs has no edges. This will be used for filtering with regards to
+    finding games that have certain number of genres as the games that the user has played.
+
+    Preconditions:
+    - user_games != []
+    """
+    list_so_far = []
+    current_genre_edge = 0
+    current_graph = generate_graph(game_file, json_file, user_games, current_genre_edge)
+    while current_graph.edges_exist():
+        list_so_far.append(current_graph)
+        current_genre_edge += 1
+        current_graph = generate_graph(game_file, json_file, user_games, current_genre_edge)
+    return list_so_far
+
+
 def sort_games(games: list[Game]) -> None:
-    """Sorts a list of games in the given list in descending order of their rating by mutating the list.
+    """Sorts a list of games in the given list in descending order of their metascore by mutating the list.
     """
     for index1 in range(0, len(games) - 1):
         if games[index1].rating < games[index1 + 1].rating:
@@ -295,7 +344,7 @@ def sort_games(games: list[Game]) -> None:
                     games[index2], games[index2 - 1] = games[index2 - 1], games[index2]
 
 
-def highest_scoring_game(game_list: set[Game]) -> Game:
+def highest_scoring_game(game_list: set[Game]) -> Optional[Game]:
     """Returns the highest scoring game from a set of games"""
     highest_score_so_far = 0
     game_so_far = None
