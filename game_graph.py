@@ -1,9 +1,9 @@
 """Code for the game graph"""
 from __future__ import annotations
+from typing import Optional
 import csv
 import json
 import user_interface
-from typing import Optional
 
 
 class Game:
@@ -46,7 +46,7 @@ class Game:
 
     def genre_count(self, genre_collection: list[str]) -> int:
         """Counts the number of user preferenced genres and the game genres that are similar"""
-        lowered_list = [genre.lower() for genre in genre_collection]
+        lowered_list = [genre_str.lower() for genre_str in genre_collection]
         list_so_far = []
         for genre in self.genres:
             if genre.lower() in lowered_list:
@@ -77,9 +77,11 @@ class GameNode:
 class GameGraph:
     """A graph containing nodes that represent a game. Nodes are connected depending on the number of genres that they
     have in common with another game and the user's preferred genres.
+
     Instance Attributes:
     - self.user_games is a list of all the games that the user has played/or wants recommendations to be based on.
     - user_max_price is the maximum price that the user is willing to pay for a game.
+
     Representation Invariants:
     - all(self._nodes[game_id].game_id = game_id for game_id in self._nodes)
     - self.user_max_price >= 0.0
@@ -90,7 +92,7 @@ class GameGraph:
     # - _user_nodes: Similar to _nodes, but only consists of nodes whose game has been played by the user.
 
     user_game_ids: list[int]
-    user_genre_list: list[str]
+    user_game_genres: list[str]
     user_max_price: float
     _nodes: dict[int, GameNode]
     _user_nodes: dict[int, GameNode]
@@ -214,11 +216,14 @@ class GameGraph:
         genre_weight = 0.5
         rating_price_weight = 0.5
         assert (genre_weight + rating_price_weight) == 1.0
+
         max_price = self.max_price()
         max_ratio = self.max_positive_ratio()
         game = game_node.game
+
         genre_score = (game.genre_count(self.user_game_genres) / len(self.user_game_genres)) * genre_weight
         rating_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rating_price_weight
+
         if game.price > self.user_max_price:
             game.rating = 0.0
         else:
@@ -251,6 +256,7 @@ class GameGraph:
     def highest_scoring_games(self, total_games: int) -> list[Game]:
         """Creates a list of the top scored games that will be recommended to the user. The total games recommended
         is based on the vaue of total_games.
+
         Preconditions:
         - total_games >= 0
         """
@@ -270,14 +276,15 @@ class GameGraph:
             sort_games(actual_suggestions)
             return actual_suggestions
         else:
-            # When the user has not inputted any games.
+            # When the user has not inputted any games, i.e., self.user_game_ids == []
             return self.top_games(total_games)
 
 
 def read_data_csv(csv_file: str) -> dict[int, Game]:
     """Load data from a CSV file and output the data as a mapping between game ids and their corresponding Game object.
+
     Preconditions:
-        - csv_file refers to a valid CSV file, meaning that it consists of all the characteristics of every steam game.
+    - csv_file refers to a valid CSV file, meaning that it consists of all the characteristics of every steam game.
     """
     result = {}
 
@@ -328,25 +335,37 @@ def generate_graph(game_file: str, json_file: str, user_games: list, user_genres
     game_graph = GameGraph(user_games, user_genres, max_price)
     for metadata in json_result:
         # Adds the nodes to the graph and genres to each game.
-        game = csv_result[metadata[0]]
+        game = csv_result[metadata[0]]  # Finds the game in csv_result by using its associated game_id.
         game.genres = metadata[1]
         game_graph.add_game(game)
+
     # Creates edges between each node if applicable.
     game_graph.add_all_edges()
     # Computes all the scores and assigns the score to each node's associated game.
     game_graph.assign_all_scores()
+
     return game_graph
 
 
 def sort_games(games: list[Game]) -> None:
     """Sorts a list of games in the given list in descending order of their metascore by mutating the list.
     """
-    for index1 in range(0, len(games) - 1):
-        if games[index1].rating < games[index1 + 1].rating:
-            games[index1], games[index1 + 1] = games[index1 + 1], games[index1]
-            for index2 in range(index1, 0, -1):
-                if games[index2].rating > games[index2 - 1].rating:
-                    games[index2], games[index2 - 1] = games[index2 - 1], games[index2]
+    for index in range(0, len(games) - 1):
+        if games[index].rating < games[index + 1].rating:
+            games[index], games[index + 1] = games[index + 1], games[index]
+            sort_games_helper(games, index)
+
+
+def sort_games_helper(games: list[Game], current_index: int) -> None:
+    """A helper function for sort_games that sorts an element from a given index in games[0:current_index]
+
+    Preconditions:
+    - 0 <= current_index and current_index <= len(games) - 1
+    - games[:current_index] is sorted
+    """
+    for index in range(current_index, 0, -1):
+        if games[index].rating > games[index - 1].rating:
+            games[index], games[index - 1] = games[index - 1], games[index]
 
 
 def highest_scoring_game(game_list: set[Game]) -> Optional[Game]:
@@ -398,7 +417,7 @@ def runner(game_file: str, game_metadata_file: str) -> None:
 if __name__ == '__main__':
     import python_ta
     python_ta.check_all(config={
-        'extra-imports': ['genreselector', 'tkinter', 'csv', 'json'],
+        'extra-imports': ['genreselector', 'tkinter', 'csv', 'json', 'user_interface'],
         'allowed-io': [],
         'max-line-length': 120,
         'disable': ['forbidden-IO-function']
