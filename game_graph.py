@@ -192,7 +192,7 @@ class GameGraph:
         - self.user_game_ids != []
         """
         # Weights of various factors on the game and how it will influence the score.
-        rating_price_weight = 0.6
+        rate_price_weight = 0.6
         neighbour_weight = 0.3
         genre_weight = 0.1
 
@@ -201,7 +201,11 @@ class GameGraph:
         max_price = self.max_price()
         max_ratio = self.max_positive_ratio()
 
-        rating_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rating_price_weight
+        if game.price == max_price or max_price == 0.0:
+            rate_price = (game.positive_ratio / max_ratio)
+        else:
+            rate_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rate_price_weight
+
         neighbour_score = (len(game_node.neighbours) / len(self._user_nodes)) * neighbour_weight
         genre_score = 0.0
 
@@ -214,7 +218,7 @@ class GameGraph:
             # Also, the game does not satisfy all the genre requirements that the user wants in recommended game.
             game.rating = 0.0
         else:
-            game.rating = rating_price + neighbour_score + genre_score
+            game.rating = rate_price + neighbour_score + genre_score
 
     def compute_score_genre(self, game_node: GameNode) -> None:
         """Computes the scores of each node if the user has not inputted any games to base recommendations on.
@@ -224,8 +228,7 @@ class GameGraph:
         - self.user_game_ids == []
         """
         genre_weight = 0.5
-        rating_price_weight = 0.5
-        assert (genre_weight + rating_price_weight) == 1.0
+        rate_price_weight = 0.5
 
         max_price = self.max_price()
         max_ratio = self.max_positive_ratio()
@@ -235,12 +238,16 @@ class GameGraph:
         if len(self.user_game_genres) != []:
             # Prevents division by zero
             genre_score = (game.genre_count(self.user_game_genres) / len(self.user_game_genres)) * genre_weight
-        rating_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rating_price_weight
+
+        if game.price == max_price or max_price == 0.0:
+            rate_price = (game.positive_ratio / max_ratio)
+        else:
+            rate_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rate_price_weight
 
         if game.price > self.user_max_price:
             game.rating = 0.0
         else:
-            game.rating = genre_score + rating_price
+            game.rating = genre_score + rate_price
 
     def top_games(self, total: int) -> list[Game]:
         """Returns a list of the top recommended games depending on the inputted parameter. The returned list of games
