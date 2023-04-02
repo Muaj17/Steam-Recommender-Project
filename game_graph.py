@@ -85,8 +85,6 @@ class GameGraph:
     have in common with another game and the user's preferred genres.
     Instance Attributes:
     - self.user_games is a list of all the games that the user has played/or wants recommendations to be based on.
-    - min_edge_genre is the minimum number of genres that a game needs to share with a user played game in order for
-    an edge to be formed between each game node.
     - user_max_price is the maximum price that the user is willing to pay for a game.
     Representation Invariants:
     - all(self._nodes[game_id].game_id = game_id for game_id in self._nodes)
@@ -97,17 +95,16 @@ class GameGraph:
     # - _nodes: A mapping from game ids to GameNode objects in the GameGraph.
     # - _user_nodes: Similar to _nodes, but only consists of nodes whose game has been played by the user.
 
-    min_edge_genre: int
-    user_games: list[str]
+    user_game_ids: list[int]
     user_max_price: float
     _nodes: dict[int, GameNode]
     _user_nodes: dict[int, GameNode]
 
-    def __init__(self, user_games: list[str], min_edge_genre: int) -> None:
+    def __init__(self, user_games: list[int], user_max_price: float) -> None:
         """Initializes the game graph"""
         self._nodes = {}
         self.user_games = user_games
-        self.min_edge_genre = min_edge_genre
+        self.user_max_price = user_max_price
 
     def add_game(self, game: Game) -> None:
         """Adds a game node into the graph"""
@@ -127,15 +124,13 @@ class GameGraph:
                     self.add_edge(other_node, user_node)
 
     def add_edge(self, game1: GameNode, user_node: GameNode) -> None:
-        """Creates an edge between two game nodes if they have the minimum amount of intersecting genres
+        """Creates an edge between two game nodes.
         Preconditions:
-        - game1 in self._nodes and user_game in self._nodes
-        - user_game.game.name in [game.lower for game in self.user_games]
+        - game1 in self._nodes and user_node in self._nodes
+        - user_game.game.name in [self._nodes[user_id] for user_id in self.user_game_ids]
         """
-        similar_games = game1.game.genre_count(user_node.game.genres)
-        if similar_games >= self.min_edge_genre:
-            game1.neighbours.append(user_node)
-            user_node.neighbours.append(game1)
+        game1.neighbours.append(user_node)
+        user_node.neighbours.append(game1)
 
     def max_price(self) -> float:
         """Returns the highest price out of all the games in self"""
@@ -173,6 +168,11 @@ class GameGraph:
                 return True
         return False
 
+    def assign_all_scores(self) -> None:
+        """Computes and assigns all the scores for each node's associated game."""
+        for game_id in self._nodes:
+            self.compute_score(self._nodes[game_id])
+
     def compute_score(self, game_node: GameNode) -> None:
         """Computes the game recommendation score for the given game and mutates the game's metascore for the
         given game node.
@@ -208,6 +208,7 @@ class GameGraph:
         Preconditions:
         - total >= 0
         """
+        # Set is used for constant time operations in terms of adding and removing elements.
         possible_suggestions = set()
 
         for game_id in self._nodes:
@@ -220,14 +221,6 @@ class GameGraph:
             actual_suggestions.append(game)
         sort_games(actual_suggestions)
         return actual_suggestions
-
-    def top_games_genre(self, genres: list[str]) -> list[Game]:
-        """Returns a list of the top games in a specific genre. This function will be used to compute the top games
-        when the user has not inputted any games.
-        Preconditions:
-        - genres != []
-        """
-        # TO BE IMPLEMENTED
 
     def highest_scoring_games(self, total_games: int) -> list[Game]:
         """Creates a list of the top scored games that will be recommended to the user. The total games recommended
@@ -297,16 +290,16 @@ def read_metadata_json(json_file: str) -> list[tuple]:
     return result
 
 
-def generate_graph(game_file: str, json_file: str, user_games: list, genre_edge: int) -> GameGraph:
+def generate_graph(game_file: str, json_file: str, user_games: list, max_price: float) -> GameGraph:
     """Creates a game graph
-    Notes:
+    Preconditions:
     -game_file refers to a csv file consisting of games and their attributes.
     -json_file is a json file that consists of the every game's genre in.
     -user_games refers to a list of games that the user has inputted.
     """
     json_result = read_metadata_json(json_file)
     csv_result = read_data_csv(game_file)
-    game_graph = GameGraph(user_games, genre_edge)
+    game_graph = GameGraph(user_games, max_price)
     for metadata in json_result:
         # Adds the nodes to the graph and genres to each game.
         game = csv_result[metadata[0]]
@@ -314,23 +307,9 @@ def generate_graph(game_file: str, json_file: str, user_games: list, genre_edge:
         game_graph.add_game(game)
     # Creates edges between each node if applicable.
     game_graph.add_all_edges()
+    # Computes all the scores and assigns the score to each node's associated game.
+    game_graph.assign_all_scores()
     return game_graph
-
-
-def generate_graphs_genre(game_file: str, json_file: str, user_games: list) -> list[GameGraph]:
-    """Generates game graphs until one of the game graphs has no edges. This will be used for filtering with regards to
-    finding games that have certain number of genres as the games that the user has played.
-    Preconditions:
-    - user_games != []
-    """
-    list_so_far = []
-    current_genre_edge = 0
-    current_graph = generate_graph(game_file, json_file, user_games, current_genre_edge)
-    while current_graph.edges_exist():
-        list_so_far.append(current_graph)
-        current_genre_edge += 1
-        current_graph = generate_graph(game_file, json_file, user_games, current_genre_edge)
-    return list_so_far
 
 
 def sort_games(games: list[Game]) -> None:
@@ -381,8 +360,20 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     input_price = user_interface.MaxPrice()
     max_price = input_price.price
 
-    # Part 3: Build graph
+    # Part 3: Build graph and compute scores
+    game_graph = generate_graph(game_file, game_metadata_file, game_ids, max_price)
 
-    # Part 4: Calculate meta score
+    # Part 4: Give recommendations
+    num_games_recommended = 5
+    # Note: the returned list of games are in sorted order in terms
+    top_games = game_graph.top_games(num_games_recommended)
 
-    # Part 5: Give recommendations(top 5 only)
+
+if __name__ == '__main__':
+    import python_ta
+    python_ta.check_all(config={
+        'extra-imports': ['genreselector', 'tkinter', 'csv', 'json'],
+        'allowed-io': [],
+        'max-line-length': 120,
+        'disable': ['forbidden-IO-function']
+    })
