@@ -145,33 +145,32 @@ class GameGraph:
 
     def user_genres(self) -> list[str]:
         """Returns the amount of genres that the user has played based on their inputted games"""
-        if self.user_game_genres != []:
-            return self.user_game_genres
-        else:
-            genres_so_far = set()
-            for game_id in self._user_nodes:
-                node = self._user_nodes[game_id]
-                for genre in node.game.genres:
-                    genres_so_far.add(genre)
-            genres_so_far = list(genres_so_far)
-            return genres_so_far
-
-    def edges_exist(self) -> bool:
-        """Determines if any edges have been formed in the graph"""
+        # Set is used to prevent duplicates.
+        genres_so_far = set()
         for game_id in self._user_nodes:
             node = self._user_nodes[game_id]
-            if node.neighbours != []:
-                return True
-        return False
+            for genre in node.game.genres:
+                genres_so_far.add(genre)
+        genres_so_far = list(genres_so_far)
+        return genres_so_far
 
     def assign_all_scores(self) -> None:
         """Computes and assigns all the scores for each node's associated game."""
         for game_id in self._nodes:
             self.compute_score(self._nodes[game_id])
-
+            
     def compute_score(self, game_node: GameNode) -> None:
+        """Computes and assigns the score of each node's associated game"""
+        if self.user_game_ids == []:
+            self.compute_score_genre(game_node)
+        else:
+            self.compute_score_game(game_node)
+        
+    def compute_score_game(self, game_node: GameNode) -> None:
         """Computes the game recommendation score for the given game and mutates the game's metascore for the
-        given game node.
+        given game node. This function is specifically used for computing the score of game nodes when the user has
+        inputted games to make recommendations from.
+        
         Preconditions:
         - game_node in self._nodes
         """
@@ -179,7 +178,7 @@ class GameGraph:
         rating_price_weight = 0.6
         neighbour_weight = 0.3
         genre_weight = 0.1
-        assert rating_price_weight + neighbour_weight + genre_weight == 1.0
+        assert (rating_price_weight + neighbour_weight + genre_weight) == 1.0
 
         user_genres = self.user_genres()
         game = game_node.game
@@ -190,12 +189,33 @@ class GameGraph:
         neighbour_score = (len(game_node.neighbours) / len(self._user_nodes)) * neighbour_weight
         genre_score = (game.genre_count(user_genres) / len(user_genres)) * genre_weight
 
-        if game.price > self.user_max_price:
+        if game.price > self.user_max_price or game.genre_count(self.user_game_genres) != len(self._user_nodes):
             # The game is too expensive for the user so there is not a point of recommending the game to them.
+            # Also, the game does not satisfy all the genre requirements that the user wants in recommended game.
             game.rating = 0.0
         else:
             assert (rating_price + neighbour_score + genre_score) <= 1.0
             game.rating = rating_price + neighbour_score + genre_score
+
+    def compute_score_genre(self, game_node: GameNode) -> None:
+        """Computes the scores of each node if the user has not inputted any games to base recommendations on.
+
+        Preconditions:
+        - self.user_game_ids == []
+        """
+        genre_weight = 0.5
+        rating_price_weight = 0.5
+        assert (genre_weight + rating_price_weight) == 1.0
+        max_price = self.max_price()
+        max_ratio = self.max_positive_ratio()
+        game = game_node.game
+        genre_score = (game.genre_count(self.user_game_genres) / len(self.user_game_genres)) * genre_weight
+        rating_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rating_price_weight
+        if game.price > self.user_max_price:
+            game.rating = 0.0
+        else:
+            assert (genre_score + rating_price) <= 1.0
+            game.rating = genre_score + rating_price
 
     def top_games(self, total: int) -> list[Game]:
         """Returns a list of the top recommended games depending on the inputted parameter. The returned list of games
