@@ -2,9 +2,8 @@
 from __future__ import annotations
 import csv
 import json
-import tkinter as tk
+import user_interface
 from typing import Optional
-from genreselector import GenreSelector
 
 
 class Game:
@@ -21,7 +20,6 @@ class Game:
     - rating:
         The metascore of the game, which is dependent on the relationship between the game's attributes and the
         user's preferences.
-
     Representation Invariants:
     - self.name != ''
     - self.price >= 0.0
@@ -64,14 +62,12 @@ class Game:
 
 class GameNode:
     """A node in a game graph
-
     Instance Attributes:
     - game:
         The game that the node refers to.
     - neighbours:
         All the game nodes that self shares a genre with. At least one node in the edge pair is a game that the user
         has played.
-
     Representation Invariants:
     - all(self in neighbour.neighbours for neighbour in self.neighbours)
     """
@@ -87,13 +83,11 @@ class GameNode:
 class GameGraph:
     """A graph containing nodes that represent a game. Nodes are connected depending on the number of genres that they
     have in common with another game and the user's preferred genres.
-
     Instance Attributes:
     - self.user_games is a list of all the games that the user has played/or wants recommendations to be based on.
     - min_edge_genre is the minimum number of genres that a game needs to share with a user played game in order for
     an edge to be formed between each game node.
     - user_max_price is the maximum price that the user is willing to pay for a game.
-
     Representation Invariants:
     - all(self._nodes[game_id].game_id = game_id for game_id in self._nodes)
     - self.user_max_price >= 0.0
@@ -182,7 +176,6 @@ class GameGraph:
     def compute_score(self, game_node: GameNode) -> None:
         """Computes the game recommendation score for the given game and mutates the game's metascore for the
         given game node.
-
         Preconditions:
         - game_node in self._nodes
         """
@@ -212,7 +205,6 @@ class GameGraph:
         """Returns a list of the top recommended games depending on the inputted parameter. The returned list of games
         are in descending order in terms of their score. This function will be used to compute the top games when
         the user has not inputted any games.
-
         Preconditions:
         - total >= 0
         """
@@ -232,18 +224,14 @@ class GameGraph:
     def top_games_genre(self, genres: list[str]) -> list[Game]:
         """Returns a list of the top games in a specific genre. This function will be used to compute the top games
         when the user has not inputted any games.
-
         Preconditions:
         - genres != []
         """
         # TO BE IMPLEMENTED
 
-
-
     def highest_scoring_games(self, total_games: int) -> list[Game]:
         """Creates a list of the top scored games that will be recommended to the user. The total games recommended
         is based on the vaue of total_games.
-
         Preconditions:
         - total_games >= 0
         """
@@ -269,7 +257,6 @@ class GameGraph:
 
 def read_data_csv(csv_file: str) -> dict[int, Game]:
     """Load data from a CSV file and output the data as a mapping between game ids and their corresponding Game object.
-
     Preconditions:
         - csv_file refers to a valid CSV file, meaning that it consists of all the characteristics of every steam game.
     """
@@ -316,7 +303,6 @@ def generate_graph(game_file: str, json_file: str, user_games: list, genre_edge:
     -game_file refers to a csv file consisting of games and their attributes.
     -json_file is a json file that consists of the every game's genre in.
     -user_games refers to a list of games that the user has inputted.
-
     """
     json_result = read_metadata_json(json_file)
     csv_result = read_data_csv(game_file)
@@ -334,7 +320,6 @@ def generate_graph(game_file: str, json_file: str, user_games: list, genre_edge:
 def generate_graphs_genre(game_file: str, json_file: str, user_games: list) -> list[GameGraph]:
     """Generates game graphs until one of the game graphs has no edges. This will be used for filtering with regards to
     finding games that have certain number of genres as the games that the user has played.
-
     Preconditions:
     - user_games != []
     """
@@ -383,38 +368,23 @@ def runner(game_file: str, game_metadata_file: str) -> None:
             games[game_id].genres = genres
 
     # Part 2: Tkinter interface(ask for preferred genres)
-    # Create a new tkinter window
-    root = tk.Tk()
-    root.title("Genre Selector")
-    root.geometry("400x300")
 
-    # Information for user
-    intro_text = tk.Label(root,
-                          text="Welcome to the Steam Game Recommender!\nThis program will recommend the top 5 games "
-                               "you should play based on your preference of genre.\nPlease select the genres you're "
-                               "interested in"
-                               "below.", font=("Arial", 14))
-    intro_text.grid(pady=20)
+    print(10090 in games)
 
-    # Call the GenreSelector class within the tkinter window
-    selector = GenreSelector(root)
+    # Call the GameIDSelector class
+    id_selector = user_interface.GameIDSelector(games)
+    game_ids = id_selector.get_game_ids()
 
-    # Run the tkinter mainloop
-    root.mainloop()
+    # Call the GenreSelector class
+    genre_selector = user_interface.GenreSelector()
+    selected_genres = genre_selector.genres
 
-    # Get selected genres from genre selector
-    selected_genres = selector.genres
+    # Call the MaxPrice class
+    input_price = user_interface.MaxPrice()
+    max_price = input_price.price
 
-    # Part 3: Calculate meta score
+    # Part 3: Build graph
 
-    # Part 4: Give recommendations(top 5 only)
+    # Part 4: Calculate meta score
 
-
-if __name__ == '__main__':
-    import python_ta
-    python_ta.check_all(config={
-        'extra-imports': ['genreselector', 'tkinter', 'csv', 'json'],
-        'allowed-io': [],
-        'max-line-length': 120,
-        'disable': ['forbidden-IO-function']
-    })
+    # Part 5: Give recommendations(top 5 only)
