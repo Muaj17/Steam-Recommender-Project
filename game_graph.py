@@ -369,8 +369,6 @@ def runner(game_file: str, game_metadata_file: str) -> None:
 
     # Part 2: Tkinter interface(ask for preferred genres)
 
-    print(10090 in games)
-
     # Call the GameIDSelector class
     id_selector = user_interface.GameIDSelector(games)
     game_ids = id_selector.get_game_ids()
