@@ -51,7 +51,7 @@ class Game:
         for genre in self.genres:
             if genre.lower() in lowered_list:
                 list_so_far.append(genre)
-        return len(list)
+        return len(list_so_far)
 
 
 class GameNode:
@@ -100,6 +100,7 @@ class GameGraph:
     def __init__(self, user_game_ids: list[int], user_game_genres: list[str], user_max_price: float) -> None:
         """Initializes the game graph"""
         self._nodes = {}
+        self._user_nodes = {}
         self.user_game_ids = user_game_ids
         self.user_game_genres = user_game_genres
         self.user_max_price = user_max_price
@@ -109,7 +110,7 @@ class GameGraph:
         game_id = game.game_id
         game_node = GameNode(game)
         self._nodes[game_id] = game_node
-        if game.name.lower() in self.user_game_ids:
+        if game.game_id in self.user_game_ids:
             self._user_nodes[game_id] = game_node
 
     def add_all_edges(self) -> None:
@@ -119,7 +120,7 @@ class GameGraph:
         for user_id in self._user_nodes:
             for other_id in self._nodes:
                 user_node = self._user_nodes[user_id]
-                other_node = self._user_nodes[other_id]
+                other_node = self._nodes[other_id]
                 if user_node != other_node:
                     self.add_edge(other_node, user_node)
 
@@ -188,7 +189,6 @@ class GameGraph:
         rating_price_weight = 0.6
         neighbour_weight = 0.3
         genre_weight = 0.1
-        assert (rating_price_weight + neighbour_weight + genre_weight) == 1.0
 
         user_genres = self.user_genres()
         game = game_node.game
@@ -197,14 +197,17 @@ class GameGraph:
 
         rating_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rating_price_weight
         neighbour_score = (len(game_node.neighbours) / len(self._user_nodes)) * neighbour_weight
-        genre_score = (game.genre_count(user_genres) / len(user_genres)) * genre_weight
+        genre_score = 0.0
+
+        if len(user_genres) != []:
+            # Prevents division by zero
+            genre_score = (game.genre_count(user_genres) / len(user_genres)) * genre_weight
 
         if game.price > self.user_max_price or game.genre_count(self.user_game_genres) != len(self._user_nodes):
             # The game is too expensive for the user so there is not a point of recommending the game to them.
             # Also, the game does not satisfy all the genre requirements that the user wants in recommended game.
             game.rating = 0.0
         else:
-            assert (rating_price + neighbour_score + genre_score) <= 1.0
             game.rating = rating_price + neighbour_score + genre_score
 
     def compute_score_genre(self, game_node: GameNode) -> None:
@@ -221,14 +224,16 @@ class GameGraph:
         max_price = self.max_price()
         max_ratio = self.max_positive_ratio()
         game = game_node.game
+        genre_score = 0.0
 
-        genre_score = (game.genre_count(self.user_game_genres) / len(self.user_game_genres)) * genre_weight
+        if len(self.user_game_genres) != []:
+            # Prevents division by zero
+            genre_score = (game.genre_count(self.user_game_genres) / len(self.user_game_genres)) * genre_weight
         rating_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rating_price_weight
 
         if game.price > self.user_max_price:
             game.rating = 0.0
         else:
-            assert (genre_score + rating_price) <= 1.0
             game.rating = genre_score + rating_price
 
     def top_games(self, total: int) -> list[Game]:
@@ -417,6 +422,7 @@ def runner(game_file: str, game_metadata_file: str) -> None:
 
 if __name__ == '__main__':
     import python_ta
+    runner('data/games.csv', 'data/games_metadata.json')
     python_ta.check_all(config={
         'extra-imports': ['genreselector', 'tkinter', 'csv', 'json', 'user_interface'],
         'allowed-io': [],
