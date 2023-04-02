@@ -99,6 +99,7 @@ class GameGraph:
 
     def __init__(self, user_game_ids: list[int], user_game_genres: list[str], user_max_price: float) -> None:
         """Initializes the game graph"""
+        self._nodes = {}
         self.user_game_ids = user_game_ids
         self.user_game_genres = user_game_genres
         self.user_max_price = user_max_price
