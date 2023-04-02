@@ -3,7 +3,7 @@ Group Project for CSC111 made by Mikhael Orteza, Muaj Ahmed, Cheng Peng, and Ari
 
 The program consists of the game graph class and all its associated functions with regards to loading in the data from
 a given dataset, the computations for scoring each game, and the provision of the top recommended games based on the
-user's inputs.
+user's inputs of games that they played and genres that they like.
 """
 from __future__ import annotations
 from typing import Optional
