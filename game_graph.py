@@ -13,6 +13,8 @@ class Game:
         The name of the game.
     - game_id:
         The id of the game.
+    - genres:
+        All the genres that the game has.
     - price:
         the price of the game, in US dollars.
     - positive_ratio:
@@ -108,7 +110,9 @@ class GameGraph:
             self._user_nodes[game_id] = game_node
 
     def add_all_edges(self) -> None:
-        """Creates all the edge that need to be made in the graph"""
+        """Creates all the edge that need to be made in the graph. Edges are only formed between game nodes whose
+        game is a game that the user has played and any other game node.
+        """
         for user_id in self._user_nodes:
             for other_id in self._nodes:
                 user_node = self._user_nodes[user_id]
@@ -120,7 +124,7 @@ class GameGraph:
         """Creates an edge between two game nodes.
         Preconditions:
         - game1 in self._nodes and user_node in self._nodes
-        - user_game.game.name in [self._nodes[user_id] for user_id in self.user_game_ids]
+        - user_node in [self._nodes[user_id] for user_id in self.user_game_ids]
         """
         game1.neighbours.append(user_node)
         user_node.neighbours.append(game1)
@@ -158,21 +162,24 @@ class GameGraph:
         """Computes and assigns all the scores for each node's associated game."""
         for game_id in self._nodes:
             self.compute_score(self._nodes[game_id])
-            
+
     def compute_score(self, game_node: GameNode) -> None:
-        """Computes and assigns the score of each node's associated game"""
+        """Computes and assigns the score of each node's associated game. The type of score computation algorithm is
+        dependent on whether the user has inputted a list of games to base the recommendations on.
+        """
         if self.user_game_ids == []:
             self.compute_score_genre(game_node)
         else:
             self.compute_score_game(game_node)
-        
+
     def compute_score_game(self, game_node: GameNode) -> None:
         """Computes the game recommendation score for the given game and mutates the game's metascore for the
         given game node. This function is specifically used for computing the score of game nodes when the user has
         inputted games to make recommendations from.
-        
+
         Preconditions:
-        - game_node in self._nodes
+        - game_node in {self._nodes[game_id] for game_id in self._nodes}
+        - self.user_game_ids != []
         """
         # Weights of various factors on the game and how it will influence the score.
         rating_price_weight = 0.6
@@ -201,6 +208,7 @@ class GameGraph:
         """Computes the scores of each node if the user has not inputted any games to base recommendations on.
 
         Preconditions:
+        - game_node in {self._nodes[game_id] for game_id in self._nodes}
         - self.user_game_ids == []
         """
         genre_weight = 0.5
@@ -221,8 +229,10 @@ class GameGraph:
         """Returns a list of the top recommended games depending on the inputted parameter. The returned list of games
         are in descending order in terms of their score. This function will be used to compute the top games when
         the user has not inputted any games.
+
         Preconditions:
         - total >= 0
+        - self.user_game_ids == []
         """
         # Set is used for constant time operations in terms of adding and removing elements.
         possible_suggestions = set()
@@ -260,7 +270,7 @@ class GameGraph:
             sort_games(actual_suggestions)
             return actual_suggestions
         else:
-            # When the user has not inputted any games
+            # When the user has not inputted any games.
             return self.top_games(total_games)
 
 
