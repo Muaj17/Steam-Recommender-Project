@@ -1,4 +1,10 @@
-"""Code for the game graph"""
+"""
+Group Project for CSC111 made by Mikhael Orteza, Muaj Ahmed, Cheng Peng, and Ari Casas Nassar
+
+The program consists of the game graph class and all its associated functions with regards to loading in the data from
+a given dataset, the computations for scoring each game, and the provision of the top recommended games based on the
+user's inputs.
+"""
 from __future__ import annotations
 from typing import Optional
 import csv
