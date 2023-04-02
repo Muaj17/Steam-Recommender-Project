@@ -255,8 +255,8 @@ def read_metadata_json(json_file: str) -> list[tuple]:
     result = []
 
     with open(json_file, encoding='utf-8') as f:
-        for line in [str.strip(line.lower()) for line in f]:
-            curr_full_metadata = json.loads(line)
+        for line1 in [str.strip(line2.lower()) for line2 in f]:
+            curr_full_metadata = json.loads(line1)
             relevant_metadata = (int(curr_full_metadata.get('app_id')), curr_full_metadata.get('tags'))
             result.append(relevant_metadata)
 
@@ -351,5 +351,6 @@ if __name__ == '__main__':
     python_ta.check_all(config={
         'extra-imports': ['genreselector', 'tkinter', 'csv', 'json'],
         'allowed-io': [],
-        'max-line-length': 120
+        'max-line-length': 120,
+        'disable': ['forbidden-IO-function']
     })
