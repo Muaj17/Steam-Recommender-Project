@@ -1,10 +1,10 @@
 """Code for the game graph"""
 from __future__ import annotations
-from typing import Optional
-from genreselector import GenreSelector
-import tkinter as tk
 import csv
 import json
+import tkinter as tk
+from typing import Optional
+from genreselector import GenreSelector
 
 
 class Game:
@@ -14,8 +14,6 @@ class Game:
         The name of the game.
     - game_id:
         The id of the game.
-    - date_release:
-        The date for when the game was released.
     - price:
         the price of the game, in US dollars.
     - positive_ratio:
@@ -31,15 +29,13 @@ class Game:
     positive_ratio: int
     rating: Optional[float]  # meta-score
 
-    def __init__(self, name: str, game_id: int, genres: list[str], price: float, positive_ratio: int,
-                 rating: float) -> None:
+    def __init__(self, name: str, game_id: int, genres: list[str], price: float, positive_ratio: int) -> None:
         """Initializes the game instance"""
         self.name = name
         self.game_id = game_id
         self.genres = genres
         self.price = price
         self.positive_ratio = positive_ratio
-        self.rating = rating
 
     def genre_count(self, user_genres: list[str]) -> int:
         """Counts the number of user preferenced genres and the game genres that are similar"""
@@ -245,7 +241,7 @@ def read_data_csv(csv_file: str) -> dict[int, Game]:
             positive_ratio = int(row[7])
             # 8 is skipped for user_reviews
             price_final = float(row[9])
-            curr_game = Game(name, game_id, genres, price_final, positive_ratio, 0.0)
+            curr_game = Game(name, game_id, genres, price_final, positive_ratio)
             result[game_id] = curr_game
     return result
 
