@@ -79,6 +79,10 @@ class GameNode:
         self.game = game
         self.neighbours = []
 
+    def neighbour_average_ratio(self) -> float:
+        """Computes the average ratio of all the node's neighbours"""
+        return sum(neighbour.game.positive_ratio for neighbour in self.neighbours) / len(self.neighbours)
+
 
 class GameGraph:
     """A graph containing nodes that represent a game. Nodes are connected depending on the number of genres that they
@@ -191,8 +195,9 @@ class GameGraph:
         - self.user_game_ids != []
         """
         # Weights of various factors on the game and how it will influence the score.
-        rate_price_weight = 0.6
+        rate_price_weight = 0.5
         neighbour_weight = 0.3
+        neighbour_ratio_weight = 0.1
         genre_weight = 0.1
 
         user_genres = self.user_genres()
@@ -205,7 +210,9 @@ class GameGraph:
         else:
             rate_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rate_price_weight
 
-        neighbour_score = (len(game_node.neighbours) / len(self._user_nodes)) * neighbour_weight
+        neighbour_score1 = (len(game_node.neighbours) / len(self._user_nodes)) * neighbour_weight
+        neighbour_score2 = (game_node.neighbour_average_ratio() / 100) * neighbour_ratio_weight
+        neighbour_score = neighbour_score1 + neighbour_score2
         genre_score = (game.genre_count(user_genres) / len(user_genres)) * genre_weight
 
         if game.price > self.user_max_price or game.genre_count(self.user_game_genres) != len(self._user_nodes):
@@ -221,6 +228,7 @@ class GameGraph:
         Preconditions:
         - game_node in {self._nodes[game_id] for game_id in self._nodes}
         - self.user_game_ids == []
+        - len(self.user_game_genres) > 0
         """
         genre_weight = 0.4
         rate_price_weight = 0.6
@@ -228,11 +236,8 @@ class GameGraph:
         max_price = self.max_price()
         max_ratio = self.max_positive_ratio()
         game = game_node.game
-        genre_score = 0.0
 
-        if len(self.user_game_genres) != []:
-            # Prevents division by zero
-            genre_score = (game.genre_count(self.user_game_genres) / len(self.user_game_genres)) * genre_weight
+        genre_score = (game.genre_count(self.user_game_genres) / len(self.user_game_genres)) * genre_weight
 
         if max_price in {game.price, 0.0}:
             rate_price = (game.positive_ratio / max_ratio)
@@ -400,7 +405,7 @@ def highest_scoring_game(game_list: set[Game]) -> Optional[Game]:
 
 def runner(game_file: str, game_metadata_file: str) -> None:
     """Run a simulation based on the data from the given csv file."""
-    total_nodes = 10000  # Maximum number of nodes is 46068
+    total_nodes = 5000  # Maximum number of nodes is 46068
     # Part 1: Read datasets
     games = read_data_csv(game_file, total_nodes)
     valid_ids = list(games)  # List of all the game ids only
