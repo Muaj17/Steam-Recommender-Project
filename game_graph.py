@@ -159,6 +159,7 @@ class GameGraph:
 
     def user_genres(self) -> list[str]:
         """Returns the amount of genres that the user has played based on their inputted games"""
+        # Set is used to prevent duplicates.
         list_so_far = []
         for game_id in self._user_nodes:
             node = self._user_nodes[game_id]
@@ -200,7 +201,7 @@ class GameGraph:
         max_price = self.max_price()
         max_ratio = self.max_positive_ratio()
 
-        if max_price in {game.price, 0.0}:
+        if game.price == max_price or max_price == 0.0:
             rate_price = (game.positive_ratio / max_ratio)
         else:
             rate_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rate_price_weight
@@ -234,7 +235,7 @@ class GameGraph:
             # Prevents division by zero
             genre_score = (game.genre_count(self.user_game_genres) / len(self.user_game_genres)) * genre_weight
 
-        if max_price in {game.price, 0.0}:
+        if game.price == max_price or max_price == 0.0:
             rate_price = (game.positive_ratio / max_ratio)
         else:
             rate_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rate_price_weight
@@ -400,16 +401,15 @@ def highest_scoring_game(game_list: set[Game]) -> Optional[Game]:
 
 def runner(game_file: str, game_metadata_file: str) -> None:
     """Run a simulation based on the data from the given csv file."""
-    # Total rows that will be used in the data set since using all 46k+ games in the file causes the program to run
-    # too long (a few minutes) when generating the game graph
-    total_nodes = 5000
+    total_nodes = 5000  # Maximum number of nodes is 46068
     # Part 1: Read datasets
     games = read_data_csv(game_file, total_nodes)
+    valid_ids = [x for x in games]
 
     # Part 2: Tkinter interface(ask for preferred genres)
 
     # Call the GameIDSelector class
-    id_selector = user_interface.GameIDSelector(games)
+    id_selector = user_interface.GameIDSelector(games, valid_ids)
     game_ids = id_selector.get_game_ids()
 
     # Call the GenreSelector class
@@ -428,12 +428,16 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     # Note: the returned list of games are in sorted order in terms
     top_games = game_graph.highest_scoring_games(num_games_recommended)
 
+    for game in top_games:
+        print(game.name, game.price, game.rating)
+
 
 if __name__ == '__main__':
     import python_ta
+
     runner('data/games.csv', 'data/games_metadata.json')
     python_ta.check_all(config={
-        'extra-imports': ['genreselector', 'tkinter', 'csv', 'json', 'user_interface'],
+        'extra-imports': ['tkinter', 'csv', 'json', 'user_interface'],
         'allowed-io': [],
         'max-line-length': 120,
         'disable': ['forbidden-IO-function']

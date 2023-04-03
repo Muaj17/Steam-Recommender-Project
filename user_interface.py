@@ -5,10 +5,11 @@ from tkinter import messagebox
 class GameIDSelector:
     """Allows the user to input game IDs."""
 
-    def __init__(self, games) -> None:
+    def __init__(self, games, valid_ids) -> None:
         self.root = tk.Tk()
         self.games = games
         self.game_ids = []
+        self.valid_ids = valid_ids
 
         self.root.title("Steam Game Recommender")
         self.root.geometry("1920x1080")
@@ -20,7 +21,7 @@ class GameIDSelector:
                                    " you should play based on games you've played in the past and your preference of "
                                    "genre.\nPlease input the game ids of steam games you've played before.\n To find "
                                    "the id of the game, you can use a website like https://steamdb.info/apps/.",
-                              font=("Arial", 14))
+                              font=("Arial", 12), wraplength=400)
         intro_text.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
 
         # Create a label and entry for entering game IDs
@@ -30,14 +31,35 @@ class GameIDSelector:
         self.game_id_entry = tk.Entry(self.root, font=("Arial", 12))
         self.game_id_entry.grid(row=1, column=1, padx=10, pady=10)
 
+        # Create a label for the game ID listbox
+        self.game_id_listbox_label = tk.Label(self.root, text="Valid Game IDs", font=("Arial", 12))
+        self.game_id_listbox_label.grid(row=2, column=0, padx=10, pady=10)
+
+        # Create a scrollbar for the game ID listbox
+        self.game_id_scrollbar = tk.Scrollbar(self.root)
+        self.game_id_scrollbar.grid(row=3, column=1, sticky="NS")
+
+        # Create a listbox for showing valid game IDs
+        self.game_id_listbox = tk.Listbox(self.root, height=10, width=10, font=("Arial", 12))
+        self.game_id_listbox.grid(row=3, column=0, padx=10, pady=10)
+
+        # Link the scrollbar to the game ID listbox
+        self.game_id_listbox.config(yscrollcommand=self.game_id_scrollbar.set)
+        self.game_id_scrollbar.config(command=self.game_id_listbox.yview)
+
+        # Add valid game IDs to the listbox
+        for game_id in self.valid_ids:
+            if game_id in self.games:
+                self.game_id_listbox.insert(tk.END, str(game_id))
+
         # Create "Add" and "Done" buttons
         self.add_button = tk.Button(self.root, text="Add", command=self.add_game_id, font=("Arial", 12), bg="#4CAF50",
                                     fg="white")
-        self.add_button.grid(row=2, column=0, padx=10, pady=10)
+        self.add_button.grid(row=1, column=2, padx=10, pady=10)
 
         self.done_button = tk.Button(self.root, text="Done", command=self.submit, font=("Arial", 12), bg="#008CBA",
                                      fg="white")
-        self.done_button.grid(row=2, column=1, padx=10, pady=10)
+        self.done_button.grid(row=1, column=3, columnspan=2, padx=10, pady=10)
 
         self.root.mainloop()
 
