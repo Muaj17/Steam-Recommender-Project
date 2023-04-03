@@ -160,13 +160,13 @@ class GameGraph:
     def user_genres(self) -> list[str]:
         """Returns the amount of genres that the user has played based on their inputted games"""
         # Set is used to prevent duplicates.
-        genres_so_far = set()
+        list_so_far = []
         for game_id in self._user_nodes:
             node = self._user_nodes[game_id]
             for genre in node.game.genres:
-                genres_so_far.add(genre)
-        genres_so_far = list(genres_so_far)
-        return genres_so_far
+                if genre not in list_so_far:
+                    list_so_far.append(genre)
+        return list_so_far
 
     def assign_all_scores(self) -> None:
         """Computes and assigns all the scores for each node's associated game."""
