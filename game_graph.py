@@ -159,7 +159,6 @@ class GameGraph:
 
     def user_genres(self) -> list[str]:
         """Returns the amount of genres that the user has played based on their inputted games"""
-        # Set is used to prevent duplicates.
         list_so_far = []
         for game_id in self._user_nodes:
             node = self._user_nodes[game_id]
@@ -201,7 +200,7 @@ class GameGraph:
         max_price = self.max_price()
         max_ratio = self.max_positive_ratio()
 
-        if game.price == max_price or max_price == 0.0:
+        if max_price in {game.price, 0.0}:
             rate_price = (game.positive_ratio / max_ratio)
         else:
             rate_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rate_price_weight
@@ -235,7 +234,7 @@ class GameGraph:
             # Prevents division by zero
             genre_score = (game.genre_count(self.user_game_genres) / len(self.user_game_genres)) * genre_weight
 
-        if game.price == max_price or max_price == 0.0:
+        if max_price in {game.price, 0.0}:
             rate_price = (game.positive_ratio / max_ratio)
         else:
             rate_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rate_price_weight
@@ -430,7 +429,6 @@ def runner(game_file: str, game_metadata_file: str) -> None:
 
 if __name__ == '__main__':
     import python_ta
-
     runner('data/games.csv', 'data/games_metadata.json')
     python_ta.check_all(config={
         'extra-imports': ['genreselector', 'tkinter', 'csv', 'json', 'user_interface'],
@@ -438,3 +436,4 @@ if __name__ == '__main__':
         'max-line-length': 120,
         'disable': ['forbidden-IO-function']
     })
+    
