@@ -284,7 +284,7 @@ class GameGraph:
 
         actual_suggestions = []
         if possible_suggestions != set():
-            while possible_suggestions != set() or len(actual_suggestions) == total_games:
+            while possible_suggestions != set() and len(actual_suggestions) != total_games:
                 highest_game = highest_scoring_game(possible_suggestions)
                 possible_suggestions.remove(highest_game)
                 if highest_game not in [self._user_nodes[key].game for key in self._user_nodes]:
@@ -435,6 +435,7 @@ def runner(game_file: str, game_metadata_file: str) -> None:
 
 if __name__ == '__main__':
     import python_ta
+
     runner('data/games.csv', 'data/games_metadata.json')
     python_ta.check_all(config={
         'extra-imports': ['genreselector', 'tkinter', 'csv', 'json', 'user_interface'],
