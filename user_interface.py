@@ -55,11 +55,7 @@ class GameIDSelector:
 
     def submit(self) -> None:
         """Destroys the window."""
-        if len(self.game_ids) == 0:
-            tk.messagebox.showwarning("No Game IDs Added", "Please add at least one game ID.")
-        else:
-            self.root.destroy()
-            # GenreSelector(tk.Tk())
+        self.root.destroy()
 
     def get_game_ids(self) -> list[int]:
         """Returns the list of game IDs."""
