@@ -331,7 +331,7 @@ def read_data_csv(csv_file: str, total_rows: int) -> dict[int, Game]:
         next(reader)  # skip headers
         rows_so_far = 0
         for row in reader:
-            if rows_so_far != total_rows:
+            if rows_so_far <= total_rows:
                 game_id = int(row[0])
                 name = row[1]
                 genres = []
@@ -449,13 +449,11 @@ def runner(game_file: str, game_metadata_file: str) -> None:
 
     # Part 3: Build graph and compute scores
     game_graph = generate_graph(game_file, game_metadata_file, (game_ids, selected_genres), max_price, total_nodes)
-
     # Part 4: Give recommendations
-    num_games_recommended = 5  # This can be changed but must always be at least one less than total_nodes
+    num_games_recommended = 5  # This can be changed but must always be at least  less than or equal to total_nodes
 
     # Note: the returned list of games are in sorted order in terms of score
     top_games = game_graph.highest_scoring_games(num_games_recommended, total_nodes)
-
     # Call the GameRecommendations class
     user_interface.GameRecommendations(top_games)
 
