@@ -19,7 +19,17 @@ from tkinter import ttk
 
 
 class GameIDSelector:
-    """Allows the user to input game IDs."""
+    """Allows the user to input game IDs.
+
+    Instance Attributes:
+    - root: the root window that displays the user interface
+    - games: a list of all the games and their associated id
+    - game_ids: all the valid game ids that the user can input
+    - game_id_label: a label that suggests the user to input ids
+    - game_id_label: a label on top of the list box of game ids and their game names
+    - add_button: a button that allows the user to add more games to base recommendations on
+    - done_button: a button that allows the user to complete the game selection
+    """
 
     def __init__(self, games, valid_ids: list[int]) -> None:
         self.root = tk.Tk()
@@ -106,7 +116,15 @@ class GameIDSelector:
 
 
 class GenreSelector:
-    """Allows the user to select genres they are interested in."""
+    """Allows the user to select genres they are interested in.
+
+    Instance Attributes:
+    - root: the root window that is displayed in the user interface
+    - genres: list of all inputted genres
+    - check_frame: a frame to hold the checkboxes
+    - For any genre, genre_checkbox refers to the checkbox that the user has to click for that genre in order for it
+    to be considered in the recommendation. Furthermore, genre_var depicts if the user picked a certain genre or not.
+    """
 
     def __init__(self) -> None:
         self.root = tk.Tk()
@@ -197,7 +215,15 @@ class GenreSelector:
 
 
 class MaxPrice:
-    """Asks the user to input the maximum amoount of money they are willing to spend on a steam game."""
+    """Asks the user to input the maximum amoount of money they are willing to spend on a steam game.
+
+    Instance Attributes:
+    - price: the maximum price that a user is willing to pay for a game.
+    - label: a label that suggests the user to pick their price budget for a game.
+    - entry: allows the user to enter text
+    - button: allows the user to submit their entered text
+
+    """
 
     def __init__(self) -> None:
         self.price = 0.0
@@ -232,9 +258,16 @@ class MaxPrice:
 
 
 class GameRecommendations:
-    """Displays the top recommended games to the user."""
+    """Displays the top recommended games to the user.
 
-    def __init__(self, top_games) -> None:
+    Instance Attributes:
+    - top_games: the top games that will be recommended to the user.
+    - root: the root window that is displayed on the user interface.
+    - label: tells the user about the recommended games that have been displayed with their steam links.
+
+    """
+
+    def __init__(self, top_games: list) -> None:
         self.top_games = top_games
         self.root = tk.Tk()
         self.root.title("Steam Game Recommender")
