@@ -296,29 +296,31 @@ class GameGraph:
             return self.top_games(total_games)
 
 
-def read_data_csv(csv_file: str) -> dict[int, Game]:
+def read_data_csv(csv_file: str, total_rows: int) -> dict[int, Game]:
     """Load data from a CSV file and output the data as a mapping between game ids and their corresponding Game object.
 
     Preconditions:
     - csv_file refers to a valid CSV file, meaning that it consists of all the characteristics of every steam game.
+    - total_rows >= 0
     """
     result = {}
 
     with open(csv_file, encoding='utf-8') as f:
         reader = csv.reader(f)
-
         next(reader)  # skip headers
-
+        rows_so_far = 0
         for row in reader:
-            game_id = int(row[0])
-            name = row[1]
-            genres = []
-            # 6 is skipped for rating(all words)
-            positive_ratio = int(row[7])
-            # 8 is skipped for user_reviews
-            price_final = float(row[9])
-            curr_game = Game((game_id, name), genres, price_final, positive_ratio)
-            result[game_id] = curr_game
+            if rows_so_far != total_rows:
+                game_id = int(row[0])
+                name = row[1]
+                genres = []
+                # 6 is skipped for rating(all words)
+                positive_ratio = int(row[7])
+                # 8 is skipped for user_reviews
+                price_final = float(row[9])
+                curr_game = Game((game_id, name), genres, price_final, positive_ratio)
+                result[game_id] = curr_game
+                rows_so_far += 1
     return result
 
 
@@ -349,7 +351,7 @@ def generate_graph(game_file: str, json_file: str, user_info: tuple, max_price: 
     -total_nodes >= 0
     """
     json_result = read_metadata_json(json_file)
-    csv_result = read_data_csv(game_file)
+    csv_result = read_data_csv(game_file, total_nodes)
     game_graph = GameGraph(user_info[0], user_info[1], max_price)
     for index in range(0, total_nodes):
         metadata = json_result[index]
@@ -399,15 +401,9 @@ def highest_scoring_game(game_list: set[Game]) -> Optional[Game]:
 
 def runner(game_file: str, game_metadata_file: str) -> None:
     """Run a simulation based on the data from the given csv file."""
+    total_nodes = 5000
     # Part 1: Read datasets
-    games = read_data_csv(game_file)
-    games_metadata = read_metadata_json(game_metadata_file)
-
-    for metadata in games_metadata:
-        game_id, genres = metadata
-
-        if game_id in games:
-            games[game_id].genres = genres
+    games = read_data_csv(game_file, total_nodes)
 
     # Part 2: Tkinter interface(ask for preferred genres)
 
@@ -424,7 +420,6 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     max_price = input_price.price
 
     # Part 3: Build graph and compute scores
-    total_nodes = 5000 # Can be adjusted
     game_graph = generate_graph(game_file, game_metadata_file, (game_ids, selected_genres), max_price, total_nodes)
 
     # Part 4: Give recommendations
