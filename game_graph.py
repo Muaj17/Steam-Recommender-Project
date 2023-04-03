@@ -22,6 +22,7 @@ import user_interface
 
 class Game:
     """A steam game and its various attributes
+
     Instance Attributes:
     - name:
         The name of the game.
@@ -36,6 +37,7 @@ class Game:
     - rating:
         The metascore of the game, which is dependent on the relationship between the game's attributes and the
         user's preferences.
+
     Representation Invariants:
     - self.name != ''
     - self.price >= 0.0
@@ -70,14 +72,17 @@ class Game:
 
 class GameNode:
     """A node in a game graph
+
     Instance Attributes:
     - game:
         The game that the node refers to.
     - neighbours:
         All the game nodes that self shares a genre with. At least one node in the edge pair is a game that the user
         has played.
+
     Representation Invariants:
     - all(self in neighbour.neighbours for neighbour in self.neighbours)
+    - self not in self.neighbours
     """
     game: Game
     neighbours: list[GameNode]
@@ -101,8 +106,9 @@ class GameGraph:
     have in common with another game and the user's preferred genres.
 
     Instance Attributes:
-    - self.user_games is a list of all the games that the user has played/or wants recommendations to be based on.
+    - self.user_ids is a list of all the games that the user has played/or wants recommendations to be based on.
     - user_max_price is the maximum price that the user is willing to pay for a game.
+    - user_game_genres is a list of all the genres that the user wants recommendations to be based on
 
     Representation Invariants:
     - all(self._nodes[game_id].game_id = game_id for game_id in self._nodes)
@@ -143,7 +149,7 @@ class GameGraph:
             for other_id in self._nodes:
                 user_node = self._user_nodes[user_id]
                 other_node = self._nodes[other_id]
-                if user_node != other_node:
+                if user_node != other_node and (user_node not in other_node.neighbours):
                     self.add_edge(other_node, user_node)
 
     def add_edge(self, game1: GameNode, user_node: GameNode) -> None:
@@ -449,6 +455,7 @@ def runner(game_file: str, game_metadata_file: str) -> None:
 
     # Part 3: Build graph and compute scores
     game_graph = generate_graph(game_file, game_metadata_file, (game_ids, selected_genres), max_price, total_nodes)
+
     # Part 4: Give recommendations
     num_games_recommended = 5  # This can be changed but must always be at least  less than or equal to total_nodes
 
