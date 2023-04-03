@@ -400,6 +400,8 @@ def highest_scoring_game(game_list: set[Game]) -> Optional[Game]:
 
 def runner(game_file: str, game_metadata_file: str) -> None:
     """Run a simulation based on the data from the given csv file."""
+    # Total rows that will be used in the data set since using all 46k+ games in the file causes the program to run
+    # too long (a few minutes) when generating the game graph
     total_nodes = 5000
     # Part 1: Read datasets
     games = read_data_csv(game_file, total_nodes)
@@ -436,4 +438,3 @@ if __name__ == '__main__':
         'max-line-length': 120,
         'disable': ['forbidden-IO-function']
     })
-    
