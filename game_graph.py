@@ -205,11 +205,12 @@ class GameGraph:
             rate_price = (game.positive_ratio / max_ratio)
         else:
             rate_price = (game.positive_ratio / max_ratio) * ((max_price - game.price) / max_price) * rate_price_weight
-        
-        neighbour_score = 0
+
+        neighbour_score = 0.0
+        genre_score = 0.0
         if len(self._user_nodes) != 0:
             neighbour_score = (len(game_node.neighbours) / len(self._user_nodes)) * neighbour_weight
-        genre_score = (game.genre_count(user_genres) / len(user_genres)) * genre_weight
+            genre_score = (game.genre_count(user_genres) / len(user_genres)) * genre_weight
 
         if game.price > self.user_max_price or game.genre_count(self.user_game_genres) != len(self._user_nodes):
             # The game is too expensive for the user so there is not a point of recommending the game to them.
