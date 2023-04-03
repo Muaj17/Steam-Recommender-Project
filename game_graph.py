@@ -88,7 +88,11 @@ class GameNode:
         self.neighbours = []
 
     def neighbour_average_ratio(self) -> float:
-        """Computes the average ratio of all the node's neighbours"""
+        """Computes the average ratio of all the node's neighbours
+
+        Instance attributes:
+        - len(self.neighbours) > 0
+        """
         return sum(neighbour.game.positive_ratio for neighbour in self.neighbours) / len(self.neighbours)
 
 
