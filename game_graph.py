@@ -339,19 +339,21 @@ def read_metadata_json(json_file: str) -> list[tuple]:
     return result
 
 
-def generate_graph(game_file: str, json_file: str, user_games: list, user_genres: list, max_price: float) -> GameGraph:
+def generate_graph(game_file: str, json_file: str, user_info: tuple, max_price: float, total_nodes: int) -> GameGraph:
     """Creates a game graph
     Preconditions:
     -game_file refers to a csv file consisting of games and their attributes.
     -json_file is a json file that consists of the every game's genre in.
     -user_games refers to a list of games that the user has inputted.
+    -len(user_info) == 2
+    -total_nodes >= 0
     """
     json_result = read_metadata_json(json_file)
     csv_result = read_data_csv(game_file)
-    game_graph = GameGraph(user_games, user_genres, max_price)
-    for metadata in json_result:
-        # Adds the nodes to the graph and genres to each game.
-        game = csv_result[metadata[0]]  # Finds the game in csv_result by using its associated game_id.
+    game_graph = GameGraph(user_info[0], user_info[1], max_price)
+    for index in range(0, total_nodes):
+        metadata = json_result[index]
+        game = csv_result[metadata[0]]
         game.genres = metadata[1]
         game_graph.add_game(game)
 
@@ -422,13 +424,13 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     max_price = input_price.price
 
     # Part 3: Build graph and compute scores
-    game_graph = generate_graph(game_file, game_metadata_file, game_ids, selected_genres, max_price)
+    total_nodes = 5000 # Can be adjusted
+    game_graph = generate_graph(game_file, game_metadata_file, (game_ids, selected_genres), max_price, total_nodes)
 
     # Part 4: Give recommendations
     num_games_recommended = 5
     # Note: the returned list of games are in sorted order in terms
     top_games = game_graph.highest_scoring_games(num_games_recommended)
-    assert len(top_games) == num_games_recommended
 
 
 if __name__ == '__main__':
