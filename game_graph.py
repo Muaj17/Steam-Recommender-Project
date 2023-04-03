@@ -400,16 +400,15 @@ def highest_scoring_game(game_list: set[Game]) -> Optional[Game]:
 
 def runner(game_file: str, game_metadata_file: str) -> None:
     """Run a simulation based on the data from the given csv file."""
-    # Total rows that will be used in the data set since using all 46k+ games in the file causes the program to run
-    # too long (a few minutes) when generating the game graph
-    total_nodes = 5000
+    total_nodes = 10000  # Maximum number of nodes is 46068
     # Part 1: Read datasets
     games = read_data_csv(game_file, total_nodes)
+    valid_ids = list(games)  # List of all the game ids only
 
     # Part 2: Tkinter interface(ask for preferred genres)
 
     # Call the GameIDSelector class
-    id_selector = user_interface.GameIDSelector(games)
+    id_selector = user_interface.GameIDSelector(games, valid_ids)
     game_ids = id_selector.get_game_ids()
 
     # Call the GenreSelector class
@@ -427,8 +426,12 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     num_games_recommended = 5
     # Note: the returned list of games are in sorted order in terms
     top_games = game_graph.highest_scoring_games(num_games_recommended)
+
     for game in top_games:
+        # Note: If all the game scores are 0 in the recommended games, it means that there were no games that satisfied
+        # all the filters.
         print(game.name, game.price, game.rating)
+
 
 if __name__ == '__main__':
     import python_ta
