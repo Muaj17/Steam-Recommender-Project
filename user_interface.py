@@ -19,8 +19,7 @@ class GameIDSelector:
                               text="Welcome to the Steam Game Recommender!\nThis program will recommend the top 5"
                                    " steam games"
                                    " you should play based on games you've played in the past and your preference of "
-                                   "genre.\nPlease input the game ids of steam games you've played before.\n To find "
-                                   "the id of the game, you can use a website like https://steamdb.info/apps/.",
+                                   "genre.\nPlease input the game ids of steam games you have played before (optional)",
                               font=("Arial", 12), wraplength=400)
         intro_text.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
 
@@ -32,7 +31,7 @@ class GameIDSelector:
         self.game_id_entry.grid(row=1, column=1, padx=10, pady=10)
 
         # Create a label for the game ID listbox
-        self.game_id_listbox_label = tk.Label(self.root, text="Valid Game IDs", font=("Arial", 12))
+        self.game_id_listbox_label = tk.Label(self.root, text="Valid Games (with their id)", font=("Arial", 12))
         self.game_id_listbox_label.grid(row=2, column=0, padx=10, pady=10)
 
         # Create a scrollbar for the game ID listbox
@@ -40,7 +39,7 @@ class GameIDSelector:
         self.game_id_scrollbar.grid(row=3, column=1, sticky="NS")
 
         # Create a listbox for showing valid game IDs
-        self.game_id_listbox = tk.Listbox(self.root, height=10, width=10, font=("Arial", 12))
+        self.game_id_listbox = tk.Listbox(self.root, height=10, width=50, font=("Arial", 12))
         self.game_id_listbox.grid(row=3, column=0, padx=10, pady=10)
 
         # Link the scrollbar to the game ID listbox
@@ -50,7 +49,7 @@ class GameIDSelector:
         # Add valid game IDs to the listbox
         for game_id in self.valid_ids:
             if game_id in self.games:
-                self.game_id_listbox.insert(tk.END, str(game_id))
+                self.game_id_listbox.insert(tk.END, games[game_id].name + ': ' + str(game_id))
 
         # Create "Add" and "Done" buttons
         self.add_button = tk.Button(self.root, text="Add", command=self.add_game_id, font=("Arial", 12), bg="#4CAF50",
