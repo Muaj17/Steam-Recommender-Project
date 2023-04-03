@@ -1,9 +1,17 @@
 """
-Group Project for CSC111 made by Mikhael Orteza, Muaj Ahmed, Cheng Peng, and Ari Casas Nassar
+CSC111 Winter 2023 Project: Steam Game Recommender
 
-The program consists of the game graph class and all its associated functions with regards to loading in the data from
+This module consists of the game graph class and all its associated functions with regards to loading in the data from
 a given dataset, the computations for scoring each game, and the provision of the top recommended games based on the
 user's inputs of games that they played and genres that they like.
+
+This file is provided solely for the personal and private use of students
+taking CSC111 at the University of Toronto St. George campus. All forms of
+distribution of this code, whether as given or with any changes, are
+expressly prohibited. For more information on copyright for CSC111 materials,
+please consult our Course Syllabus.
+
+This file is Copyright (c) 2023 Mikhael Orteza, Muaj Ahmed, Cheng Peng, and Ari Casas Nassar
 """
 from __future__ import annotations
 from typing import Optional
@@ -180,7 +188,7 @@ class GameGraph:
         """Computes and assigns the score of each node's associated game. The type of score computation algorithm is
         dependent on whether the user has inputted a list of games to base the recommendations on.
         """
-        if self.user_game_ids == []:
+        if not self.user_game_ids:
             self.compute_score_genre(game_node)
         else:
             self.compute_score_game(game_node)
@@ -272,14 +280,19 @@ class GameGraph:
         sort_games(actual_suggestions)
         return actual_suggestions
 
-    def highest_scoring_games(self, total_games: int) -> list[Game]:
+    def highest_scoring_games(self, total_games: int, num_nodes: int) -> list[Game]:
         """Creates a list of the top scored games that will be recommended to the user. The total games recommended
         is based on the vaue of total_games.
 
         Preconditions:
         - total_games >= 0
+        - total_games < num_nodes
         """
         possible_suggestions = set()
+
+        if total_games >= num_nodes:
+            raise ValueError("The number of nodes in the graph must be greater than the number of games that should "
+                             "be recommended.")
 
         for game_id in self._user_nodes:
             for neighbour in self._user_nodes[game_id].neighbours:
@@ -353,7 +366,11 @@ def generate_graph(game_file: str, json_file: str, user_info: tuple, max_price: 
     -user_games refers to a list of games that the user has inputted.
     -len(user_info) == 2
     -total_nodes >= 0
+    -total_nodes <= 46068
     """
+    if total_nodes > 46068:
+        raise ValueError("There are a maximum of 46068 games in the game file.")
+
     json_result = read_metadata_json(json_file)
     csv_result = read_data_csv(game_file, total_nodes)
     game_graph = GameGraph(user_info[0], user_info[1], max_price)
@@ -405,7 +422,9 @@ def highest_scoring_game(game_list: set[Game]) -> Optional[Game]:
 
 def runner(game_file: str, game_metadata_file: str) -> None:
     """Run a simulation based on the data from the given csv file."""
-    total_nodes = 5000  # Maximum number of nodes is 46068
+    total_nodes = 5000  # Maximum number of nodes allowed is 46068, note that as this number goes up, the program
+    # will take a longer time to run
+
     # Part 1: Read datasets
     games = read_data_csv(game_file, total_nodes)
     valid_ids = list(games)  # List of all the game ids only
@@ -428,21 +447,20 @@ def runner(game_file: str, game_metadata_file: str) -> None:
     game_graph = generate_graph(game_file, game_metadata_file, (game_ids, selected_genres), max_price, total_nodes)
 
     # Part 4: Give recommendations
-    num_games_recommended = 5
-    # Note: the returned list of games are in sorted order in terms
-    top_games = game_graph.highest_scoring_games(num_games_recommended)
+    num_games_recommended = 5  # This can be changed but must always be at least one less than total_nodes
 
-    for game in top_games:
-        # Note: If all the game scores are 0 in the recommended games, it means that there were no games that satisfied
-        # all the filters.
-        print(game.name, game.price, game.rating)
+    # Note: the returned list of games are in sorted order in terms of score
+    top_games = game_graph.highest_scoring_games(num_games_recommended, total_nodes)
+
+    # Call the GameRecommendations class
+    user_interface.GameRecommendations(top_games)
 
 
 if __name__ == '__main__':
     import python_ta
-    runner('data/games.csv', 'data/games_metadata.json')
+
     python_ta.check_all(config={
-        'extra-imports': ['genreselector', 'tkinter', 'csv', 'json', 'user_interface'],
+        'extra-imports': ['tkinter', 'csv', 'json', 'user_interface'],
         'allowed-io': [],
         'max-line-length': 120,
         'disable': ['forbidden-IO-function']
